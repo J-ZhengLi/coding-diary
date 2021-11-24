@@ -1,14 +1,16 @@
 use item_macro::Builder;
 
+#[allow(dead_code)]
 pub enum ItemType {
     Armour,
     Weapon,
-    Character,
     Consumable,
     Material,
-    Artifact
+    Artifact,
+    Tradable
 }
 
+#[allow(dead_code)]
 pub enum Rarity {
     Normal,
     Special,
@@ -17,11 +19,49 @@ pub enum Rarity {
     Legendary
 }
 
+#[allow(dead_code)]
+enum Gender {
+    Male,
+    Female
+}
+
+#[allow(dead_code)]
+enum ChaType {
+    Worrior,
+    Ranger,
+    Mage,
+    Tank,
+    ExoCreature
+}
+
+#[allow(dead_code)]
+#[derive(Default)]
+struct ChaStatus {
+    max_health: u32,
+    max_stamina: u32,
+    max_mage: u32,
+    attack: u32,
+    defence: u32,
+    crit_rate: u8,
+    crit_dmg: u16
+}
+
+#[allow(dead_code)]
 #[derive(Builder)]
 pub struct Item {
     name: String,
     description: String,
-    item_type: ItemType,
-    rarity: Rarity,
+    //item_type: ItemType,
+    //rarity: Rarity,
     value: Option<u32>
+}
+
+#[allow(dead_code)]
+pub struct Character {
+    name: String,
+    gender: Gender,
+    description: String,
+    cha_type: ChaType,
+    rarity: Rarity,
+    status: ChaStatus,
 }
