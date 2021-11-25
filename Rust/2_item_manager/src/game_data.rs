@@ -11,6 +11,7 @@ pub enum ItemType {
 }
 
 #[allow(dead_code)]
+#[derive(Clone)]
 pub enum Rarity {
     Normal,
     Special,
@@ -26,6 +27,7 @@ enum Gender {
 }
 
 #[allow(dead_code)]
+#[derive(Clone)]
 enum ChaType {
     Worrior,
     Ranger,
