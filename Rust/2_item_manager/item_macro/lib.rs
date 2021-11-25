@@ -12,6 +12,15 @@ fn check_is_option(ty: &syn::Type) -> bool {
     false
 }
 
+/// Unwrap option type if the field is already known
+/// if the given type is not an Option type, do nothing
+fn unwrap_option(ty: &syn::Type) -> &syn::Type {
+    if check_is_option(ty) {
+        println!("{:?}", ty);
+    }
+    ty
+}
+
 #[proc_macro_derive(Builder)]
 pub fn derive(input: TokenStream) -> TokenStream {
     let DeriveInput {ident, data, .. } = parse_macro_input!(input);
@@ -39,12 +48,21 @@ pub fn derive(input: TokenStream) -> TokenStream {
     let setters = named_fields.iter().map(|n| {
         let name = &n.ident;
         let ty = &n.ty;
-        quote! {
-            pub fn #name(&mut self, #name: #ty) -> &mut Self {
-                self.#name = Some(#name);
-                self
+        if check_is_option(ty) {
+            quote! {
+                pub fn #name(&mut self, #name: #ty) -> &mut Self {
+                    self.#name = #name;
+                    self
+                }
             }
-        } 
+        } else {
+            quote! {
+                pub fn #name(&mut self, #name: #ty) -> &mut Self {
+                    self.#name = Some(#name);
+                    self
+                }
+            }
+        }
     });
     let build_fields = named_fields.iter().map(|n| {
         let name = &n.ident;
