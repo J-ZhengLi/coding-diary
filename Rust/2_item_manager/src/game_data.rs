@@ -1,39 +1,40 @@
-use item_macro::Builder;
+use item_macro::{Builder, Show};
 
 #[allow(dead_code)]
+#[derive(Clone, Debug)]
 pub enum ItemType {
     Armour,
     Weapon,
     Consumable,
     Material,
     Artifact,
-    Tradable
+    Tradable,
 }
 
 #[allow(dead_code)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Rarity {
     Normal,
     Special,
     Rare,
     Epic,
-    Legendary
+    Legendary,
 }
 
 #[allow(dead_code)]
 enum Gender {
     Male,
-    Female
+    Female,
+    Undefined
 }
 
 #[allow(dead_code)]
-#[derive(Clone)]
 enum ChaType {
     Worrior,
     Ranger,
     Mage,
     Tank,
-    ExoCreature
+    ExoCreature,
 }
 
 #[allow(dead_code)]
@@ -45,20 +46,21 @@ struct ChaStatus {
     attack: u32,
     defence: u32,
     crit_rate: u8,
-    crit_dmg: u16
+    crit_dmg: u16,
 }
 
 #[allow(dead_code)]
-#[derive(Builder)]
+#[derive(Builder, Debug)]
 pub struct Item {
     name: String,
     description: String,
-    //item_type: ItemType,
-    //rarity: Rarity,
-    value: Option<u32>
+    item_type: ItemType,
+    rarity: Rarity,
+    value: Option<u32>,
 }
 
 #[allow(dead_code)]
+#[derive(Show)]
 pub struct Character {
     name: String,
     gender: Gender,
