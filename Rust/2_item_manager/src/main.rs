@@ -24,4 +24,7 @@ fn main() {
     println!("Debug output of normal item: {:?}", normal_item);
 
     println!("Debug output of legendary item: {:?}", legend_item);
+
+    println!("Showing rarities enum with proc-macro:");
+    
 }
