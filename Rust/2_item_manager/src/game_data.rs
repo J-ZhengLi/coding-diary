@@ -12,7 +12,7 @@ pub enum ItemType {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Show)]
 pub enum Rarity {
     Normal,
     Special,
@@ -60,7 +60,6 @@ pub struct Item {
 }
 
 #[allow(dead_code)]
-#[derive(Show)]
 pub struct Character {
     name: String,
     gender: Gender,

@@ -122,26 +122,19 @@ pub fn derivce_builder(input: TokenStream) -> TokenStream {
     TokenStream::from(expended)
 }
 
-/// TODO: Finish this
 /// This macro can 'show' the content of given data structure in a more decent way
 #[proc_macro_derive(Show)]
 pub fn derive_show(input: TokenStream) -> TokenStream {
-    let DeriveInput {data, .. } = parse_macro_input!(input);
+    let DeriveInput {ident, data, .. } = parse_macro_input!(input);
 
-    let contents = match data {
-        syn::Data::Struct(DataStruct { fields, .. }) => {
-            match fields {
-                syn::Fields::Named(syn::FieldsNamed { named, .. }) => named,
-                syn::Fields::Unnamed(syn::FieldsUnnamed { unnamed, .. }) => unnamed,
-                syn::Fields::Unit => unimplemented!()
-            }
-        },
-        //syn::Data::Enum(syn::DataEnum) => {},
-        //syn::Data::Union(syn::DataUnion) => {},
-        _ => unimplemented!()
+    println!("{:?}", ident);
+    println!("{:?}", data);
+
+    let result_quote = quote! {
+        impl std #ident {
+            pub fn dummy() {}
+        }
     };
 
-    println!("{:?}", contents.len());
-
-    TokenStream::new()
+    TokenStream::from(result_quote)
 }
