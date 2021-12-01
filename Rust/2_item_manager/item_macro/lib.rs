@@ -122,19 +122,111 @@ pub fn derivce_builder(input: TokenStream) -> TokenStream {
     TokenStream::from(expended)
 }
 
-/// This macro can 'show' the content of given data structure in a more decent way
-#[proc_macro_derive(Show)]
+/// This macro derives std::fmt::Display to 'show' the content of given data structure
+/// in a more decent way
+#[proc_macro_derive(Show, attributes(color))]
 pub fn derive_show(input: TokenStream) -> TokenStream {
-    let DeriveInput {ident, data, .. } = parse_macro_input!(input);
+    let DeriveInput {ident, ref data, .. } = parse_macro_input!(input);
 
-    println!("{:?}", ident);
-    println!("{:?}", data);
+    // Because in both struct and union, there is a Punctuated<field, comma> type,
+    // where in enum, there is none but a Punctuated<variant, comma> type,
+    // so the enum type should be considered separatly
+    let enum_content = match data {
+        syn::Data::Enum(syn::DataEnum {variants, .. }) => Some(variants),
+        _ => None
+    };
+
+    let named_content = match data {
+        syn::Data::Struct(syn::DataStruct {fields, ..}) => {
+            match fields {
+                syn::Fields::Named(syn::FieldsNamed {named, ..}) => Some(named),
+                // ignore unnamed fields and unit type because it doesn't make sense
+                _ => unimplemented!()
+            }
+        },
+        syn::Data::Union(syn::DataUnion {fields: syn::FieldsNamed {named, ..}, ..}) => Some(named),
+        _ => None
+    };
+
+    let contents = match enum_content {
+        Some(v) => {
+            //println!("variants: {:?}", v);
+            let var_list = v.iter().map(|f| {
+                let name = &f.ident;
+                println!("{}", name);
+
+                let mut result = format!("{}", name);
+
+                // super ugly code, fix later
+                for attr in &f.attrs {
+                    if let Ok(syn::Meta::NameValue(syn::MetaNameValue {path: syn::Path {segments, ..}, lit, ..})) = attr.parse_meta() {
+                        for seg in &segments {
+                            if seg.ident == "color" {
+                                if let syn::Lit::Str(ref lstr) = lit {
+                                    let lit_val = lstr.value();
+                                    result = format!("{}{}\x1b[0m", color_platte(lit_val.as_str()), name);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                quote! {std::println!("{}", #result);}
+            });
+
+            quote! {#(#var_list)*}
+        },
+        None => {
+            match named_content {
+                Some(n) => {
+                    //println!("fields: {:?}", n);
+                    let named_fields_quote = n.iter().map(|f| {
+                        let name = &f.ident;
+                        let name_title = match name {
+                            Some(s) => s.to_string(),
+                            None => String::from("_")
+                        };
+
+                        quote! {
+                            println!("{}: {:?}", #name_title, &self.#name);
+                        }
+                    });
+                    quote! {#(#named_fields_quote)*}
+                },
+                None => panic!("Unsupported type for implementation.)")
+            }
+        }
+    };
 
     let result_quote = quote! {
-        impl std #ident {
-            pub fn dummy() {}
+        impl std::fmt::Display for #ident {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                //std::println!("\n{}\n", #sep_line);
+                #contents
+                write!(f, "")
+            }
         }
     };
 
     TokenStream::from(result_quote)
+}
+
+/// Function to get specific color hex formatting string base on color name.
+/// 
+/// # Example
+/// 
+/// ```rust
+/// let red_color = color_platte("red");
+/// assert_eq!(red_color, "\x1b[31;1m{}\x1b[0m");
+/// ```
+fn color_platte(color: &str) -> String {
+    match color {
+        "red" => String::from("\x1b[31;1m"),
+        "yellow" => String::from("\x1b[33;1m"),
+        "purple" => String::from("\x1b[35;1m"),
+        "blue" => String::from("\x1b[34;1m"),
+        "cyan" => String::from("\x1b[36;1m"),
+        "white" => String::from("\x1b[37;1m"),
+        _ => unimplemented!("The color you input has not been implement yet.")
+    }
 }
