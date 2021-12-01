@@ -1,7 +1,7 @@
 use item_macro::{Builder, Show};
 
 #[allow(dead_code)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Show)]
 pub enum ItemType {
     Armour,
     Weapon,
@@ -14,10 +14,15 @@ pub enum ItemType {
 #[allow(dead_code)]
 #[derive(Clone, Debug, Show)]
 pub enum Rarity {
+    #[color = "white"]
     Normal,
+    #[color = "cyan"]
     Special,
+    #[color = "blue"]
     Rare,
+    #[color = "purple"]
     Epic,
+    #[color = "yellow"]
     Legendary,
 }
 
@@ -25,7 +30,7 @@ pub enum Rarity {
 enum Gender {
     Male,
     Female,
-    Undefined
+    Undefined,
 }
 
 #[allow(dead_code)]
@@ -50,7 +55,7 @@ struct ChaStatus {
 }
 
 #[allow(dead_code)]
-#[derive(Builder, Debug)]
+#[derive(Builder, Debug, Show)]
 pub struct Item {
     name: String,
     description: String,
