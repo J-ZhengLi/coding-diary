@@ -1,0 +1,144 @@
+{
+    "weapons": [
+      {
+        "name": "Iron Sword",
+        "description": "A basic melee weapon.",
+        "rarity": 0,
+        "weapon_attr": {
+            "level": 0,
+            "damage": 10,
+            "ex_damage": 0,
+            "ex_duration": 0,
+            "crit_rate": 0,
+            "crit_dmg_p": 120
+        },
+        "value": 100
+      },
+      {
+        "name": "Rusted Sword",
+        "description": "Not so sharp, but may causing periodic damages.",
+        "rarity": 0,
+        "weapon_attr": {
+            "level": 0,
+            "damage": 5,
+            "ex_damage": 2,
+            "ex_duration": 5,
+            "crit_rate": 0,
+            "crit_dmg_e": 120
+        },
+        "value": 200
+      },
+      {
+        "name": "Silver Sword",
+        "description": "A single handed sword, dealing extra damages to demons",
+        "rarity": 1,
+        "weapon_attr": {
+            "level": 0,
+            "damage": 15,
+            "ex_damage": 5,
+            "ex_duration": 5,
+            "crit_rate": 5,
+            "crit_dmg": 150
+        },
+        "value": 500
+      },
+      {
+        "name": "Ruby Sword",
+        "description": "A very sharp single handed sword, the blade was made with ruby",
+        "rarity": 1,
+        "weapon_attr": {
+            "level": 0,
+            "damage": 30,
+            "ex_damage": 0,
+            "ex_duration": 0,
+            "crit_rate": 5,
+            "crit_dmg": 150
+        },
+        "value": 600
+      },
+      {
+        "name": "Venom Sword",
+        "description": "Single handed sword that forged with cobra's venom, causing peroidic damages.",
+        "rarity": 2,
+        "weapon_attr": {
+            "level": 0,
+            "damage": 20,
+            "ex_damage": 10,
+            "ex_duration": 5,
+            "crit_rate": 5,
+            "crit_dmg": 150
+        },
+        "value": 1000
+      },
+      {
+        "name": "Cold Steel Sword",
+        "description": "A very sharp single handed sword.",
+        "rarity": 2,
+        "weapon_attr": {
+            "level": 0,
+            "damage": 60,
+            "ex_damage": 0,
+            "ex_duration": 0,
+            "crit_rate": 10,
+            "crit_dmg": 150
+        },
+        "value": 1000
+      },
+      {
+        "name": "Dragon Bone Sword",
+        "description": "A single handed sword made with dragon bone, sharp and can last forever.",
+        "rarity": 3,
+        "weapon_attr": {
+            "level": 0,
+            "damage": 110,
+            "ex_damage": 0,
+            "ex_duration": 0,
+            "crit_rate": 15,
+            "crit_dmg": 150
+        },
+        "value": 3000
+      },
+      {
+        "name": "Chainsaw",
+        "description": "Causing bleeding effect to non-demon enemies.",
+        "rarity": 3,
+        "weapon_attr": {
+            "level": 0,
+            "damage": 70,
+            "ex_damage": 10,
+            "ex_duration": 10,
+            "crit_rate": 5,
+            "crit_dmg": 150
+        },
+        "value": 3000
+      },
+      {
+        "name": "Demon Sword",
+        "description": "*",
+        "rarity": 4,
+        "weapon_attr": {
+            "level": 0,
+            "damage": 380,
+            "ex_damage": 20,
+            "ex_duration": 5,
+            "crit_rate": 15,
+            "crit_dmg": 200
+        },
+        "value": 10000
+      },
+      {
+        "name": "Stinger of Python",
+        "description": "Causing bleeding effect.",
+        "rarity": 4,
+        "weapon_attr": {
+            "level": 0,
+            "damage": 200,
+            "ex_damage": 30,
+            "ex_duration": 10,
+            "crit_rate": 5,
+            "crit_dmg": 200
+        },
+        "value": 10000
+      }
+    ]
+  }
