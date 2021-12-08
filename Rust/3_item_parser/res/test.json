@@ -1,0 +1,14 @@
+{
+    "arr": [
+        {
+            "name": "Wang",
+            "age": 32,
+            "gender": "Male"
+        },
+        {
+            "name": "Chen",
+            "age": 22,
+            "gender": "Female"
+        }
+    ]
+}
