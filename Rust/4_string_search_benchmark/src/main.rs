@@ -15,24 +15,24 @@ fn parse_duration(duration: Duration) -> String {
 
 fn native_search(words: &[&str], context: &[u8], find_all: bool) {
     let str_context = std::str::from_utf8(context).unwrap();
+    let timer = Instant::now();
 
-    for &word in words {
-        let timer = Instant::now();
+    if words.len() == 1 {
         if find_all {
-            let result: Vec<_> = str_context.match_indices(word).collect();
+            let result: Vec<_> = str_context.match_indices(words[0]).collect();
             println!(
                 "[native] Found {} occurance of word \"{}\" in {}",
                 result.len(),
-                word,
+                words[0],
                 parse_duration(timer.elapsed())
             );
         } else {
-            let result = str_context.find(word);
+            let result = str_context.find(words[0]);
             match result {
                 Some(n) => {
                     println!(
                         "[native] Found word \"{}\" at position {} in {}",
-                        word,
+                        words[0],
                         n,
                         parse_duration(timer.elapsed())
                     );
@@ -40,35 +40,58 @@ fn native_search(words: &[&str], context: &[u8], find_all: bool) {
                 None => {
                     println!(
                         "[native] Did not find word \"{}\", time elapsed: {}",
-                        word,
+                        words[0],
                         parse_duration(timer.elapsed())
                     );
                 }
             }
         }
+    } else {
+        let mut counter: usize = 0;
+        for &word in words {
+            if find_all {
+                let result: Vec<_> = str_context.match_indices(word).collect();
+                counter += result.len();
+            } else {
+                match str_context.find(word) {
+                    Some(_) => {
+                        counter += 1;
+                        break;
+                    },
+                    None => { }
+                }
+            }
+        }
+                
+        println!(
+            "[native] Found {} occurance of words \"{:?}\" in {}",
+            counter,
+            words,
+            parse_duration(timer.elapsed())
+        );
     }
 }
 
 fn memmem_search(words: &[&str], context: &[u8], find_all: bool) {
-    for &word in words {
-        // start timer
-        let timer = Instant::now();
-        
+    // start timer
+    let timer = Instant::now();
+
+    if words.len() == 1 {
         if find_all {
-            let mem_it = memmem::find_iter(context, word);
+            let mem_it = memmem::find_iter(context, words[0]);
             println!(
                 "[memmem] Found {} occurance of word \"{}\" in {}",
                 mem_it.count(),
-                word,
+                words[0],
                 parse_duration(timer.elapsed())
             );
         } else {
-            let finder = memmem::Finder::new(word);
+            let finder = memmem::Finder::new(words[0]);
             match finder.find(context) {
                 Some(n) => {
                     println!(
                         "[memmem] Found word \"{}\" at position {} in {}",
-                        word,
+                        words[0],
                         n,
                         parse_duration(timer.elapsed())
                     );
@@ -76,12 +99,36 @@ fn memmem_search(words: &[&str], context: &[u8], find_all: bool) {
                 None => {
                     println!(
                         "[memmem] Did not find word \"{}\", time elapsed: {}",
-                        word,
+                        words[0],
                         parse_duration(timer.elapsed())
                     );
                 }
             }
         }
+    } else {
+        let mut counter: usize = 0;
+
+        for &word in words {
+            if find_all {
+                counter += memmem::find_iter(context, word).count();
+            } else {
+                let finder = memmem::Finder::new(word);
+                match finder.find(context) {
+                    Some(_) => {
+                        counter += 1;
+                        break;
+                    },
+                    None => {}
+                }
+            }
+        }
+
+        println!(
+            "[memmem] Found {} occurance of words \"{:?}\" in {}",
+            counter,
+            words,
+            parse_duration(timer.elapsed())
+        );
     }
 }
 
@@ -159,7 +206,7 @@ fn main() {
     aho_corasick_seach(&[word_1], full_text, true);
 
     println!(
-        "\n==================== Finding first occurrance of three strings ===================="
+        "\n==================== Finding left most occurrance of three strings ===================="
     );
     native_search(three_words, full_text, false);
     memmem_search(three_words, full_text, false);
@@ -173,7 +220,7 @@ fn main() {
     aho_corasick_seach(three_words, full_text, true);
 
     println!(
-        "\n==================== Finding first occurrance of ten strings ===================="
+        "\n==================== Finding left most occurrance of ten strings ===================="
     );
     native_search(ten_words, full_text, false);
     memmem_search(ten_words, full_text, false);
