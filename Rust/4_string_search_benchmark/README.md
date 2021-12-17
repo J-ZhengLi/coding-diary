@@ -1,6 +1,10 @@
-#Substring Search Benchmark
+# Substring Search Benchmark
 
 **Comparing the performance of different search method**
+
+**Crate used:**
+1. memchr
+2. aho_corasick
 
 This app currently does comparison between `native search`, `memchr crate` and `aho_corasick crate`, in searching for substrings in a randomly generated long text file (that has millions characters).
 

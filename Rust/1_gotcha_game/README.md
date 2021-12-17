@@ -1,6 +1,9 @@
 # A Very Basic Gotcha System
 
-This project is a demo using the 'rand' crate.
+**This project is a demo using the 'rand' crate.**
+
+**Crate used:**
+1. rand
 
 ## Why am I still here, just to suffer
 
