@@ -2,14 +2,16 @@
 //! so... in case you are wondering why not keeping all those things in a struct
 //! or some type of structure, well... this is the reason.
 
-use std::borrow::BorrowMut;
-use std::io::{self, Write};
-use std::sync::{RwLock, Mutex, Once};
-use std::sync::atomic::{AtomicU16, AtomicU8, AtomicBool, Ordering::SeqCst};
-use once_cell::sync::{Lazy, OnceCell};
 use lazy_static::lazy_static;
+use once_cell::sync::{Lazy, OnceCell};
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
+use std::borrow::BorrowMut;
+use std::io::{self, Write};
+use std::sync::atomic::{AtomicBool, AtomicU16, AtomicU8, Ordering::SeqCst};
+use std::sync::{Mutex, Once, RwLock};
+
+const ENEMY_LIMIT: u8 = 20;
 
 /// Define the current state of player, when this equals to false meaning that the
 /// player is in an in-game state.
@@ -29,17 +31,11 @@ static LEVEL: AtomicU16 = AtomicU16::new(0);
 
 /// Character title, a static variable with mutable string wrapped in Rwlock,
 /// which given the ability of syncronized reading
-static CHAR_TITLE: Lazy<RwLock<String>> = Lazy::new(|| {
-    RwLock::new("Newbie".to_string())
-});
+static CHAR_TITLE: Lazy<RwLock<String>> = Lazy::new(|| RwLock::new("Newbie".to_string()));
 
 /// Inlines a vector of names of enemies in current level,
 /// using Mutex because it does not need syncronized reading.
-static ENEMY_NAMES: Lazy<Mutex<Vec<String>>> = Lazy::new(|| {
-    Mutex::new(
-        Vec::<String>::new()
-    )
-});
+static ENEMY_NAMES: Lazy<Mutex<Vec<String>>> = Lazy::new(|| Mutex::new(Vec::<String>::new()));
 
 lazy_static! {
     /// Holds the name of enemies that you brutaly killed :(
@@ -49,7 +45,7 @@ lazy_static! {
 }
 
 /// Determain whether is the current game running or not.
-/// 
+///
 /// OnceCell garantee that the variable is only initialized once,
 /// and in this case in order to change the variable we just need to replace it with a new cell.
 static GAME_RUNNING: OnceCell<bool> = OnceCell::new();
@@ -62,9 +58,9 @@ static mut NOTE: Option<Mutex<String>> = None;
 static NOTE_TO_PLAYER: Once = Once::new();
 
 /// # Engine
-/// 
+///
 /// `start` function is called once before game loop
-/// 
+///
 /// This is a framwork function that takes another function as argument, and execute the content
 /// of that function if the game is not started yet, then set the GAME_RUNNING state to true.
 fn start(initializaion: fn()) {
@@ -77,24 +73,28 @@ fn start(initializaion: fn()) {
 }
 
 /// # Engine
-/// 
+///
 /// `update` function is called in every frame
 fn update(body: fn() -> Option<i32>) {
     'game: loop {
         if let Some(res) = body() {
             match res {
-                0 => { println!("Game exit successfully!"); },
-                _ => { println!("Game exit with error code: {}", res); }
+                0 => {
+                    println!("Game exit successfully!");
+                }
+                _ => {
+                    println!("Game exit with error code: {}", res);
+                }
             };
             break 'game;
         }
     }
 }
 
-fn note_to_player<'a>(msg: &str) -> &'a Mutex<String> {
+fn note_to_player<'a>() -> &'a Mutex<String> {
     unsafe {
         NOTE_TO_PLAYER.call_once(|| {
-            *NOTE.borrow_mut() = Some(Mutex::new(msg.to_string()));
+            *NOTE.borrow_mut() = Some(Mutex::new(String::new()));
         });
 
         NOTE.as_ref().unwrap()
@@ -110,7 +110,8 @@ fn get_stats_string() -> String {
         \nEnemy Remaining: {} \
         \nEnemies Killed: {:?}",
         LEVEL.load(SeqCst),
-        CHAR_LEVEL.load(SeqCst), CHAR_TITLE.read().unwrap(),
+        CHAR_LEVEL.load(SeqCst),
+        CHAR_TITLE.read().unwrap(),
         CHAR_HEALTH.load(SeqCst),
         MAX_ENEMY_COUNT.load(SeqCst) - local_killed_enemies.len() as u8,
         local_killed_enemies
@@ -119,13 +120,11 @@ fn get_stats_string() -> String {
 
 /// Get a random name from name_list
 fn random_name() -> String {
-    let names = ALL_NAMES.get_or_init(|| {
-        include_str!("../res/name_list").split(' ').collect()
-    });
+    let names = ALL_NAMES.get_or_init(|| include_str!("../res/name_list").split(' ').collect());
 
     match names.choose(&mut thread_rng()) {
         Some(name) => name.to_string(),
-        None => String::from("???")
+        None => String::from("???"),
     }
 }
 
@@ -136,6 +135,33 @@ fn attack_enemy() {
         println!("You killed \'{}\'!", killed);
         KILLED_ENEMIES.lock().unwrap().push(killed);
     }
+}
+
+fn start_level() {
+    LEVEL.fetch_add(1, SeqCst);
+
+    println!("\nStarting Level {}", LEVEL.load(SeqCst));
+    *note_to_player().lock().unwrap() = "Fight!".to_string();
+    println!("{}", note_to_player().lock().unwrap());
+
+    match LEVEL.load(SeqCst) as u8 {
+        x if x >= ENEMY_LIMIT => {
+            MAX_ENEMY_COUNT.store(ENEMY_LIMIT, SeqCst);
+        }
+        x if x < ENEMY_LIMIT => {
+            MAX_ENEMY_COUNT.store(x, SeqCst);
+        }
+        _ => {}
+    };
+
+    // spawn enemies
+    for _ in 0..MAX_ENEMY_COUNT.load(SeqCst) {
+        let enemy = random_name();
+        println!("Spawning enemy: {}", enemy);
+        ENEMY_NAMES.lock().unwrap().push(enemy);
+    }
+
+    KILLED_ENEMIES.lock().unwrap().clear();
 }
 
 fn main() {
@@ -150,31 +176,35 @@ fn main() {
     start(|| {
         IS_SPECTATING.store(false, SeqCst);
 
-        println!("{}", note_to_player("Game Started!").lock().unwrap());
+        *note_to_player().lock().unwrap() = "Game Started!".to_string();
+        println!("{}", note_to_player().lock().unwrap());
     });
 
     // update function called each frame
     update(|| {
-        let mut enemies = ENEMY_NAMES.lock().unwrap();
-        if enemies.is_empty() {
-            LEVEL.fetch_add(1, SeqCst);
-            for _ in 0..MAX_ENEMY_COUNT.load(SeqCst) {
-                let enemy = random_name();
-                println!("Spawning enemy: {}", enemy);
-                enemies.push(enemy);
-            }
+        if ENEMY_NAMES.lock().unwrap().is_empty() {
+            start_level();
         }
 
+        print!("> ");
         let _ = io::stdout().flush();
 
         let mut input = String::new();
-        io::stdin().read_line(&mut input).expect("Fail to read input.");
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Fail to read input.");
 
         // deal with input
         match input.trim() {
-            "a" | "A" => { attack_enemy(); },
-            "s" | "S" => { println!("{}", get_stats_string()); },
-            "q" | "Q" => { return Some(0); },
+            "a" | "A" => {
+                attack_enemy();
+            }
+            "s" | "S" => {
+                println!("{}", get_stats_string());
+            }
+            "q" | "Q" => {
+                return Some(0);
+            }
             _ => {}
         };
 

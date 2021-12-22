@@ -6,5 +6,5 @@
 1. lazy_static
 2. once_cell
 
-I somehow think this is a nice way to learn the use of crates like `lazy_static` and `once_cell`, while also getting into multi-thread 
-programming with Rust.
+Currently this is yet another text based game but boring as hell. You can only enter "A/a" to attack and enter "S/s" to show game progress.
+While enemies doesn't not fight back and can be killed in one shot, character cannot level up as well.
