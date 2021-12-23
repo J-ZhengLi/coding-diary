@@ -1,12 +1,38 @@
 pub trait ExprParser {
+    /// Remove spaces in a `String`
+    /// 
+    /// Sometimes you might just want a cleaner look version on your expression,
+    /// espacially before passing it to `to_postfix` method
+    /// 
+    /// # Example
+    /// ```rust
+    /// use calculator_util::ExprParser;
+    /// 
+    /// let expr: String = "abs( 2 - 13 ) * 5".to_string();
+    /// assert_eq!(expr.remove_spaces(), "abs(2-13)*5".to_string());
+    /// ```
     fn remove_spaces(&self) -> String;
+
+    /// Add spaces between operators and operands
+    /// 
+    /// Note: This method doesn't work well with Strings that are in postfix notation,
+    /// because it's impossible to know where to insert spaces between numbers,
+    /// make sure to add a seperator when generating postfix notation using `to_postfix(sep)`.
+    /// 
+    /// # Example
+    /// ```rust
+    /// use calculator_util::ExprParser;
+    /// 
+    /// let expr: String = "(1+2*30)/3".to_string();
+    /// assert_eq!(expr.add_spaces(), "( 1 + 2 * 30 ) / 3".to_string());
+    /// ```
     fn add_spaces(&self) -> String;
 
     /// Convert math expression to a `Vec` of operator and operands in the order of
-    /// Reverse Polish Expression (AKA postfix expression)
+    /// Reverse Polish Notation (AKA postfix notation)
     ///
     /// This function convert current math expression as a `String` to a `Vec<String>`
-    /// which is a serial operators and operands in postfix fashion
+    /// which is a serial operators and operands in postfix fashion.
     ///
     /// # Example
     /// ```rust
@@ -18,9 +44,9 @@ pub trait ExprParser {
     /// ```
     fn to_postfix_vec(&self) -> Vec<String>;
 
-    /// Convert math expression to Reverse Polish Expression (AKA postfix expression)
+    /// Convert math expression to Reverse Polish Notation (AKA postfix notation)
     ///
-    /// This function convert current expression as a `String` to a postfix expression `String`
+    /// This function convert current expression as a `String` to a postfix notation `String`
     /// The parameter *seperator* is an Option of `&str` that will be used to seperate
     /// the result String, if `None` is given, the result will not be seperated at all.
     ///
@@ -33,7 +59,6 @@ pub trait ExprParser {
     /// assert_eq!(postfix, "1 32 + 3 /");
     /// ```
     fn to_postfix(&self, seperator: Option<&str>) -> String;
-    fn to_infix(&self) -> String;
 }
 
 impl ExprParser for String {
@@ -42,13 +67,14 @@ impl ExprParser for String {
     }
 
     fn add_spaces(&self) -> String {
-        // Remove space firest then add, which is simpler
+        // To simplify the whole procedure, remove all existing spaces before hand.
         let old_string = self.remove_spaces();
-        let mut new_string = String::new();
 
         // Add this flag to prevent double spaces when two operator are together
         // such as (5+1)/2, the output will be ( 5 + 1 )  / 2 without checking.
         let mut last_ch_is_operator = false;
+
+        let mut new_string = String::new();
         for c in old_string.chars() {
             if c.is_ascii_digit() || c == '.' {
                 new_string.push(c);
@@ -132,10 +158,6 @@ impl ExprParser for String {
             None => "",
         };
         self.to_postfix_vec().join(sep)
-    }
-
-    fn to_infix(&self) -> String {
-        unimplemented!()
     }
 }
 
