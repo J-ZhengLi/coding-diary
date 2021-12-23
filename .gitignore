@@ -1,4 +1,6 @@
 */test_field
 Rust/*/target/*
+Rust/*/*/target/*
+Rust/*/*/Cargo.lock
 Rust/*/vendor/*
 Rust/*/Cargo.lock
