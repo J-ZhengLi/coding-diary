@@ -1,9 +1,6 @@
 pub trait ExprParser {
     /// Remove spaces in a `String`
     /// 
-    /// Sometimes you might just want a cleaner look version on your expression,
-    /// espacially before passing it to `to_postfix` method
-    /// 
     /// # Example
     /// ```rust
     /// use calculator_util::ExprParser;
@@ -59,6 +56,8 @@ pub trait ExprParser {
     /// assert_eq!(postfix, "1 32 + 3 /");
     /// ```
     fn to_postfix(&self, seperator: Option<&str>) -> String;
+
+    fn eval(&self) -> String;
 }
 
 impl ExprParser for String {
@@ -67,15 +66,16 @@ impl ExprParser for String {
     }
 
     fn add_spaces(&self) -> String {
-        // To simplify the whole procedure, remove all existing spaces before hand.
-        let old_string = self.remove_spaces();
-
         // Add this flag to prevent double spaces when two operator are together
         // such as (5+1)/2, the output will be ( 5 + 1 )  / 2 without checking.
         let mut last_ch_is_operator = false;
 
         let mut new_string = String::new();
-        for c in old_string.chars() {
+        for c in self.chars() {
+            if c == ' ' {
+                continue;
+            }
+
             if c.is_ascii_digit() || c == '.' {
                 new_string.push(c);
                 last_ch_is_operator = false;
@@ -126,6 +126,10 @@ impl ExprParser for String {
                         result.push(op);
                     }
                 } else {
+                    if c.is_whitespace() {
+                        continue;
+                    }
+
                     let str_op = c.to_string();
 
                     while let Some(op) = op_stack.last() {
@@ -158,6 +162,10 @@ impl ExprParser for String {
             None => "",
         };
         self.to_postfix_vec().join(sep)
+    }
+
+    fn eval(&self) -> String {
+        String::new()
     }
 }
 
@@ -196,5 +204,11 @@ mod tests {
             input.to_postfix(Some(" ")),
             "8 60 cos 2.5 / + 6 20 40 - abs * +".to_string()
         );
+    }
+
+    #[test]
+    fn postfix_to_postfix() {
+        let input: String = "30 20 + 2.5 10 - +".to_string();
+        assert_eq!(input.to_postfix(Some(" ")), input);
     }
 }

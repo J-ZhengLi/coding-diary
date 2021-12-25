@@ -13,8 +13,8 @@ fn main() {
     );
 
     // testing
-    let test = "(1234 + 2345)/5 - 45.5*arccos(20 +54)".to_string();
+    let test = "3 - 4*5*cos(60)".to_string();
 
-    println!("{}", test.remove_spaces().to_postfix(Some(" ")));
+    println!("{}", test.to_postfix(Some(" ")));
     println!("{}", test.add_spaces());
 }
