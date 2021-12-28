@@ -13,8 +13,10 @@ fn main() {
     );
 
     // testing
-    let test = "3 - 4*5*cos(60)".to_string();
+    let test = "arccos(0.5)".to_string();
 
-    println!("{}", test.to_postfix(Some(" ")));
-    println!("{}", test.add_spaces());
+    println!("Original: {}", test.add_spaces());
+    println!("Postfix: {}", test.to_postfix(Some(" ")));
+    println!("Result : {}", test.eval());
+    println!("Epsilon: {}", f64::EPSILON);
 }

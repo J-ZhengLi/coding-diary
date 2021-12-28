@@ -1,25 +1,30 @@
+pub mod number;
+mod operations;
+
+use number::Number;
+
 pub trait ExprParser {
     /// Remove spaces in a `String`
-    /// 
+    ///
     /// # Example
     /// ```rust
     /// use calculator_util::ExprParser;
-    /// 
+    ///
     /// let expr: String = "abs( 2 - 13 ) * 5".to_string();
     /// assert_eq!(expr.remove_spaces(), "abs(2-13)*5".to_string());
     /// ```
     fn remove_spaces(&self) -> String;
 
     /// Add spaces between operators and operands
-    /// 
+    ///
     /// Note: This method doesn't work well with Strings that are in postfix notation,
     /// because it's impossible to know where to insert spaces between numbers,
     /// make sure to add a seperator when generating postfix notation using `to_postfix(sep)`.
-    /// 
+    ///
     /// # Example
     /// ```rust
     /// use calculator_util::ExprParser;
-    /// 
+    ///
     /// let expr: String = "(1+2*30)/3".to_string();
     /// assert_eq!(expr.add_spaces(), "( 1 + 2 * 30 ) / 3".to_string());
     /// ```
@@ -57,7 +62,7 @@ pub trait ExprParser {
     /// ```
     fn to_postfix(&self, seperator: Option<&str>) -> String;
 
-    fn eval(&self) -> String;
+    fn eval(&self) -> Number;
 }
 
 impl ExprParser for String {
@@ -69,7 +74,6 @@ impl ExprParser for String {
         // Add this flag to prevent double spaces when two operator are together
         // such as (5+1)/2, the output will be ( 5 + 1 )  / 2 without checking.
         let mut last_ch_is_operator = false;
-
         let mut new_string = String::new();
         for c in self.chars() {
             if c == ' ' {
@@ -94,60 +98,70 @@ impl ExprParser for String {
         new_string.trim().to_string()
     }
 
-    // TODO: Prettify these ugly code
     fn to_postfix_vec(&self) -> Vec<String> {
-        let mut sp_op = String::new();
-        let mut num_char_string = String::new();
+        let mut op_buff = String::new();
+        let mut num_buff = String::new();
         let mut result: Vec<String> = vec![];
         let mut op_stack: Vec<String> = vec![];
+        let mut prev_is_op: bool = true;
 
         for c in self.chars() {
-            if c.is_ascii_digit() || c == '.' {
-                num_char_string.push(c);
+            // skip whitespaces first
+            if c.is_whitespace() {
+                continue;
+            }
+
+            // handle numbers, including decimal point
+            if c == '.' || c.is_ascii_digit() {
+                num_buff.push(c);
+                prev_is_op = false;
+                continue;
+            }
+
+            // since this encountered character is not a part of number
+            // push remaining number buffer into result and clear it.
+            try_push_and_clear(&mut result, &mut num_buff);
+
+            // handle special operators such as 'abs', 'cos', 'sin', etc.
+            if c.is_ascii_alphabetic() {
+                op_buff.push(c);
+                continue;
+            }
+
+            // handle paramphesis and the rest of operators including '+', '-', '*', etc.
+            if c == '(' {
+                op_stack.push(c.to_string());
+                // push special operator into stack as well if has
+                try_push_and_clear(&mut op_stack, &mut op_buff);
+                prev_is_op = true;
+            } else if c == ')' {
+                while let Some(op) = op_stack.pop() {
+                    if op == '('.to_string() {
+                        break;
+                    }
+                    result.push(op);
+                }
+                prev_is_op = false;
             } else {
-                if !num_char_string.is_empty() {
-                    result.push(num_char_string.clone());
-                    num_char_string.clear();
+                // looking for '+' or '-' because they could be positive or negative sign
+                // for numbers, skip if it matches
+                if (c == '+' || c == '-') && prev_is_op {
+                    num_buff.push(c);
+                    continue;
                 }
-
-                if c.is_ascii_alphabetic() {
-                    sp_op.push(c);
-                } else if c == '(' {
-                    op_stack.push(c.to_string());
-                    if !sp_op.is_empty() {
-                        op_stack.push(sp_op.clone());
-                        sp_op.clear();
+                let op_str = c.to_string();
+                while let Some(op) = op_stack.last() {
+                    if priority(&op_str) > priority(op) {
+                        break;
                     }
-                } else if c == ')' {
-                    while let Some(op) = op_stack.pop() {
-                        if op == '('.to_string() {
-                            break;
-                        }
-                        result.push(op);
-                    }
-                } else {
-                    if c.is_whitespace() {
-                        continue;
-                    }
-
-                    let str_op = c.to_string();
-
-                    while let Some(op) = op_stack.last() {
-                        if priority(&str_op) > priority(op) {
-                            break;
-                        } else {
-                            result.push(op_stack.pop().unwrap());
-                        }
-                    }
-                    op_stack.push(str_op);
+                    result.push(op_stack.pop().unwrap());
                 }
+                op_stack.push(op_str);
+                prev_is_op = true;
             }
         }
         // Add remaining operands
-        if !num_char_string.is_empty() {
-            result.push(num_char_string.clone());
-            num_char_string.clear();
-        }
+        try_push_and_clear(&mut result, &mut num_buff);
         // Add remaining operators
         while let Some(op) = op_stack.pop() {
             result.push(op);
@@ -164,21 +178,86 @@ impl ExprParser for String {
         self.to_postfix_vec().join(sep)
     }
 
-    fn eval(&self) -> String {
-        String::new()
+    fn eval(&self) -> Number {
+        let pf_vec = self.to_postfix_vec();
+        let mut val_stack: Vec<Number> = vec![];
+
+        for pf in pf_vec {
+            match pf.as_str() {
+                "+" => do_binary_op(&mut val_stack, operations::add),
+                "-" => do_binary_op(&mut val_stack, operations::sub),
+                "*" | "x" => do_binary_op(&mut val_stack, operations::mul),
+                "/" | "\\" => do_binary_op(&mut val_stack, operations::div),
+                "^" => do_binary_op(&mut val_stack, operations::pow),
+                "sqrt" => do_unary_op(&mut val_stack, operations::sqrt),
+                "abs" => do_unary_op(&mut val_stack, operations::abs),
+                "cos" => do_unary_op(&mut val_stack, operations::cos),
+                "sin" => do_unary_op(&mut val_stack, operations::sin),
+                "tan" => do_unary_op(&mut val_stack, operations::tan),
+                "arccos" => do_unary_op(&mut val_stack, operations::acos),
+                "arcsin" => do_unary_op(&mut val_stack, operations::asin),
+                "arctan" => do_unary_op(&mut val_stack, operations::atan),
+                _ => {
+                    if pf.contains('.') {
+                        let parsed_float = pf.parse::<f64>();
+                        match parsed_float {
+                            Ok(res) => {
+                                val_stack.push(Number::Float(res));
+                            }
+                            Err(_) => {
+                                panic!("Fail to parse {:?} as float, please check your input.", pf);
+                            }
+                        }
+                    } else {
+                        let parsed_int = pf.parse::<i32>();
+                        match parsed_int {
+                            Ok(res) => {
+                                val_stack.push(Number::Integer(res));
+                            }
+                            Err(_) => {
+                                panic!(
+                                    "Fail to parse {:?} as integer, please check your input.",
+                                    pf
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        val_stack.pop().unwrap()
     }
 }
 
 fn priority(s: &String) -> u8 {
     if s == "+" || s == "-" {
         1
-    } else if s == "*" || s == "/" {
+    } else if s == "*" || s == "x" || s == "\\" || s == "/" {
         2
     } else if s == "^" {
         3
     } else {
         0
     }
+}
+
+fn try_push_and_clear(seq: &mut Vec<String>, item: &mut String) {
+    if !item.is_empty() {
+        seq.push(item.clone());
+        item.clear();
+    }
+}
+
+fn do_unary_op(stack: &mut Vec<Number>, op: fn(Option<Number>) -> Number) {
+    let res: Number = op(stack.pop());
+    stack.push(res);
+}
+
+fn do_binary_op(stack: &mut Vec<Number>, op: fn(Option<Number>, Option<Number>) -> Number) {
+    let right: Option<Number> = stack.pop();
+    let left: Option<Number> = stack.pop();
+    let res: Number = op(left, right);
+    stack.push(res);
 }
 
 #[cfg(test)]
