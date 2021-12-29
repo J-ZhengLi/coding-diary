@@ -1,8 +1,22 @@
-#![allow(dead_code)]
 
+/// A enum type that represent both regular integer (i32) and float (f64)
+/// 
+/// This enum currently has two varient, `Number::Integer(i32)` and `Number::Float(f64)`.
 pub enum Number {
     Integer(i32),
     Float(f64),
+}
+
+impl From<i32> for Number {
+    fn from(n: i32) -> Self {
+        Self::Integer(n)
+    }
+}
+
+impl From<f64> for Number {
+    fn from(n: f64) -> Self {
+        Self::Float(n)
+    }
 }
 
 impl std::fmt::Debug for Number {
@@ -28,11 +42,11 @@ impl PartialEq for Number {
         match self {
             &Self::Integer(val) => match other {
                 &Self::Integer(oth_val) => val == oth_val,
-                &Self::Float(oth_val) => (f64::from(val) - oth_val).abs() < f64::EPSILON,
+                &Self::Float(oth_val) => (f64::from(val) - oth_val).abs() < f64::EPSILON * 100.0
             },
             &Self::Float(val) => match other {
-                &Self::Integer(oth_val) => (val - f64::from(oth_val)).abs() < f64::EPSILON,
-                &Self::Float(oth_val) => (val - oth_val).abs() < f64::EPSILON,
+                &Self::Integer(oth_val) => (val - f64::from(oth_val)).abs() < f64::EPSILON * 100.0,
+                &Self::Float(oth_val) => (val - oth_val).abs() < f64::EPSILON * 100.0
             },
         }
     }
