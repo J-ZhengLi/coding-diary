@@ -13,10 +13,9 @@ fn main() {
     );
 
     // testing
-    let test = "arccos(0.5)".to_string();
+    let test = "(arccos(0.5) + 20 + -10) * (2+8)".to_string();
 
     println!("Original: {}", test.add_spaces());
     println!("Postfix: {}", test.to_postfix(Some(" ")));
     println!("Result : {}", test.eval());
-    println!("Epsilon: {}", f64::EPSILON);
 }

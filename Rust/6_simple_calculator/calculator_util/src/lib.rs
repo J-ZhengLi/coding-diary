@@ -1,5 +1,22 @@
+//! # calculator_util
+//! 
+//! Useful functions and traits for writing a calculator app in Rust.
+//! This crate has implementation for `String`, that you can parse mathmatical
+//! equation strings to Reverse Polish Notation, aka postfix notation, which can
+//! be used for mathmatical evaluation with some provided functions under `operations.rs`.
+//! 
+//! # Example
+//! ```rust
+//! use calculator_util::{ExprParser, number::Number};
+//! 
+//! let equation = "(5+6) * 7".to_string();
+//! let result = equation.eval();
+//! assert_eq!(result, Number::from(77));
+//! println!("{}", result); // 77
+//! ```
+
 pub mod number;
-mod operations;
+pub mod operations;
 
 use number::Number;
 
@@ -10,7 +27,7 @@ pub trait ExprParser {
     /// ```rust
     /// use calculator_util::ExprParser;
     ///
-    /// let expr: String = "abs( 2 - 13 ) * 5".to_string();
+    /// let expr: String = "abs ( 2 - 13   ) * 5".to_string();
     /// assert_eq!(expr.remove_spaces(), "abs(2-13)*5".to_string());
     /// ```
     fn remove_spaces(&self) -> String;
@@ -25,8 +42,8 @@ pub trait ExprParser {
     /// ```rust
     /// use calculator_util::ExprParser;
     ///
-    /// let expr: String = "(1+2*30)/3".to_string();
-    /// assert_eq!(expr.add_spaces(), "( 1 + 2 * 30 ) / 3".to_string());
+    /// let expr: String = "(1+2*3)/3".to_string();
+    /// assert_eq!(expr.add_spaces(), "( 1 + 2 * 3 ) / 3".to_string());
     /// ```
     fn add_spaces(&self) -> String;
 
@@ -40,9 +57,9 @@ pub trait ExprParser {
     /// ```rust
     /// use calculator_util::ExprParser;
     ///
-    /// let infix: String = "3*(10+2)".to_string();
+    /// let infix: String = "3*abs(2-4)".to_string();
     /// let postfix_vec: Vec<String> = infix.to_postfix_vec();
-    /// assert_eq!(postfix_vec, vec!["3", "10", "2", "+", "*"]);
+    /// assert_eq!(postfix_vec, vec!["3", "2", "4", "-", "abs", "*"]);
     /// ```
     fn to_postfix_vec(&self) -> Vec<String>;
 
@@ -56,12 +73,25 @@ pub trait ExprParser {
     /// ```rust
     /// use calculator_util::ExprParser;
     ///
-    /// let infix: String = "(1+32)/3".to_string();
+    /// let infix: String = "(1+32)/cos(60)".to_string();
     /// let postfix: String = infix.to_postfix(Some(" "));
-    /// assert_eq!(postfix, "1 32 + 3 /");
+    /// assert_eq!(postfix, "1 32 + 60 cos /");
     /// ```
     fn to_postfix(&self, seperator: Option<&str>) -> String;
 
+    /// Evaluate given mathatic equation `string`
+    /// 
+    /// This function evaluates mathmatic equation to a `Number` type, which is a enum
+    /// contains both i32 and f64 datatype represent by `Number::Integer(i32) and
+    /// `Number::Float(f64)` respectively.
+    /// 
+    /// # Example
+    /// ```rust
+    /// use calculator_util::{ExprParser, number::Number};
+    /// 
+    /// let infix: String = "20 + (cos(60) + sin(30)) - abs(20+ -1)".to_string();
+    /// assert_eq!(infix.eval(), Number::from(2));
+    /// ```
     fn eval(&self) -> Number;
 }
 
@@ -186,7 +216,7 @@ impl ExprParser for String {
             match pf.as_str() {
                 "+" => do_binary_op(&mut val_stack, operations::add),
                 "-" => do_binary_op(&mut val_stack, operations::sub),
-                "*" | "x" => do_binary_op(&mut val_stack, operations::mul),
+                "*" => do_binary_op(&mut val_stack, operations::mul),
                 "/" | "\\" => do_binary_op(&mut val_stack, operations::div),
                 "^" => do_binary_op(&mut val_stack, operations::pow),
                 "sqrt" => do_unary_op(&mut val_stack, operations::sqrt),
@@ -232,7 +262,7 @@ impl ExprParser for String {
 fn priority(s: &String) -> u8 {
     if s == "+" || s == "-" {
         1
-    } else if s == "*" || s == "x" || s == "\\" || s == "/" {
+    } else if s == "*" || s == "\\" || s == "/" {
         2
     } else if s == "^" {
         3
@@ -258,36 +288,4 @@ fn do_binary_op(stack: &mut Vec<Number>, op: fn(Option<Number>, Option<Number>) 
     let left: Option<Number> = stack.pop();
     let res: Number = op(left, right);
     stack.push(res);
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::ExprParser;
-
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
-
-    #[test]
-    fn infix_to_postfix_a() {
-        let input = "1+20+33".to_string();
-        assert_eq!(input.to_postfix(Some(" ")), "1 20 + 33 +".to_string());
-    }
-
-    #[test]
-    fn infix_to_postfix_b() {
-        let input = "8+cos(60)/2.5+6*abs(20-40)".to_string();
-        assert_eq!(
-            input.to_postfix(Some(" ")),
-            "8 60 cos 2.5 / + 6 20 40 - abs * +".to_string()
-        );
-    }
-
-    #[test]
-    fn postfix_to_postfix() {
-        let input: String = "30 20 + 2.5 10 - +".to_string();
-        assert_eq!(input.to_postfix(Some(" ")), input);
-    }
 }
