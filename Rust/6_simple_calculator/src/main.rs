@@ -1,4 +1,7 @@
+mod test;
+
 use calculator_util::ExprParser;
+use std::io::{self, Write};
 
 fn main() {
     println!(
@@ -9,13 +12,26 @@ fn main() {
         \n[^]: Pow                     [sqrt()]: Square Root      [abs()]: Absolute \
         \n[cos()]: Cosine(Degree)      [sin()]: Sine(Degree)      [tan()]: Tangent(Degree) \
         \n[arccos()]: Arc Cosine       [arcsin()]: Arc Sine       [arctan()]: Arc Tangent \
-        \n================================================================================"
+        \n================================================================================ \
+        \n\nEnter an expression to eval. (Ex. `45+(20*3*cos(50)`) \
+        \nEnter `exit` to exit the program.\n"
     );
 
-    // testing
-    let test = "(arccos(0.5) + 20 + -10) * (2+8)".to_string();
+    let mut input = String::new();
 
-    println!("Original: {}", test.add_spaces());
-    println!("Postfix: {}", test.to_postfix(Some(" ")));
-    println!("Result : {}", test.eval());
+    loop {
+        print!("[Input]> ");
+        let _ = io::stdout().flush();
+        io::stdin().read_line(&mut input).expect("Fail to read input.");
+
+        match input.trim() {
+            "exit" | "e" | "E" => { break; },
+            _ => {
+                let exp = input.to_string();
+                let res = exp.eval();
+                println!("result: {}", res);
+            }
+        }
+        input.clear();
+    }
 }
