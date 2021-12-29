@@ -1,0 +1,3 @@
+[submodule "Rust/6_simple_calculator/calculator_util"]
+	path = Rust/6_simple_calculator/calculator_util
+	url = https://github.com/J-ZhengLi/calculator_util
