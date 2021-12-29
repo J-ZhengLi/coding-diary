@@ -11,7 +11,9 @@ A calculator that supporting basic operations including:
 3. Multiplication(*)
 4. Division(/)
 5. Power(^)
-as well as some operations that a not that common:
+
+As well as some operations that are not that common:
+
 1. Absolution(abs())
 2. Square Root(sqrt())
 3. Cosine(cos())
