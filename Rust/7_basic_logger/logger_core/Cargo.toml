@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 cfg-if = "1.0.0"
-log = "0.4.14"
+log = { version = "0.4.14", features = ["std"] }
+time = { version = "0.3.5", features = ["formatting", "macros", "local-offset"] }
