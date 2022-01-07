@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use calculator_util::{ExprParser, number::Number};
 
 fn eval_test_common(input: &str, expected: Number) {
