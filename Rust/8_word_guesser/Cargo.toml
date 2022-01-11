@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 strsim = "0.10.0"
 termion = "1.5.6"
+guess_core = { path = "guess_core", features = [] }
