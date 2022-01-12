@@ -11,7 +11,8 @@ cfg_if::cfg_if! {
                 .text()
                 .await.expect("Fail to get the full response text.");
 
-            body
+            println!("Body: {}", body);
+            String::new()
         }
     }
 }
@@ -45,6 +46,6 @@ mod tests {
     #[test]
     fn fetch_raw_html() {
         let result = get_word_list();
-        println!("{:?}", result);
+        assert!(!result.is_empty(), "Result: {:?}", result);
     }
 }
