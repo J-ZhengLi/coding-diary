@@ -18,6 +18,8 @@ use termion::{
     cursor::{self, DetectCursorPos},
     raw::IntoRawMode,
 };
+use strsim::normalized_levenshtein;
+use once_cell::sync::OnceCell;
 
 fn add_char(mutex_s: &Mutex<String>, ch: char) {
     let mut old_s = mutex_s
@@ -35,10 +37,40 @@ fn pop_char(mutex_s: &Mutex<String>) {
     (*old_s).pop();
 }
 
+static WORDS_CELL: OnceCell<Vec<String>> = OnceCell::new();
+
+fn find_similar_word_in_list(word: &str, list: &Vec<String>) -> Option<String> {
+    let is_single_char: bool = word.len() == 1;
+    let mut max_score = 0_f64;
+    let mut str_with_max_score: String = String::new();
+    for candidate in list {
+        if is_single_char && candidate.starts_with(word) {
+            return Some(candidate.to_string());
+        }
+        let score = normalized_levenshtein(word, candidate);
+        if score > max_score {
+            max_score = score;
+            str_with_max_score = candidate.to_string();
+        }
+    }
+
+    if max_score != 0_f64 {
+        return Some(str_with_max_score);
+    }
+
+    None
+}
+
 fn make_guess(input: &str) -> String {
+    let words: &Vec<String> = WORDS_CELL.get_or_init(|| {
+        get_word_list()
+    });
+
     let prefix: String = "Did you mean: ".to_string();
-    let postfix: String = "? wow...".to_string();
-    format!("\x1b[33;1m{}\"{}\"{}\x1b[0m", prefix, input, postfix)
+    match find_similar_word_in_list(input, words) {
+        Some(w) => format!("\x1b[33;1m{}\"{}\"?\x1b[0m", prefix, w),
+        None => format!("\x1b[33;1mSorry... I could't guess~\x1b[0m")
+    }
 }
 
 /// Using `print!` macro to print given content, but without expend the macro everywhere.
@@ -110,7 +142,7 @@ fn main() {
 
     // Thread to process input
     let output_handler = thread::spawn(move || {
-        let sleep_time = Duration::from_secs(1);
+        const SLEEP_TIME: Duration = Duration::from_secs(2);
         let mut input_buff: String = typed_string_clone.lock().unwrap().to_string();
 
         while !quit_pressed_clone.load(Ordering::Relaxed) {
@@ -142,7 +174,7 @@ fn main() {
                 io::stdout().flush().unwrap();
             }
 
-            thread::sleep(sleep_time);
+            thread::sleep(SLEEP_TIME);
         }
     });
 
@@ -152,4 +184,21 @@ fn main() {
     output_handler
         .join()
         .expect("Something went wrong in stdout reader thread.");
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::*;
+    #[test]
+    fn test_strsim() {
+        let score = normalized_levenshtein("coward", "cow");
+        assert!(score > 0.4);
+    }
+
+    #[test]
+    fn test_finding_similar_word() {
+        let words = get_word_list();
+        let result = find_similar_word_in_list("chad", &words);
+        assert_ne!(result, None);
+    }
 }
