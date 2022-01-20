@@ -9,14 +9,15 @@
 
 mod background;
 
+use background::{Building, BuildingLightMode};
 use std::fmt::Display;
-use std::io::{stdout, stdin, Write, Stdout};
-use termion::{clear, event};
+use std::io::{stdout, Stdout, Write};
+use termion::clear;
 use termion::raw::{IntoRawMode, RawTerminal};
 
 #[cold]
 #[inline(never)]
-fn write<T: Display>(mut stdout: RawTerminal<Stdout>, msg: T) {
+fn write<T: Display>(stdout: &mut RawTerminal<Stdout>, msg: T) {
     write!(stdout, "{}", msg).expect("Fail to write to the terminal.");
     stdout.flush().unwrap();
 }
@@ -25,13 +26,14 @@ fn main() {
     println!("Hello, world!");
 
     // Step 1, mode switching
-    let stdout = stdout().into_raw_mode().unwrap();
+    let mut stdout = stdout().into_raw_mode().unwrap();
 
     // Step 2, clear screen
-    write(stdout, clear::All);
+    write(&mut stdout, clear::All);
 
-    
-
-    // Step 4, start loop
-    
+    // Test building
+    let test_building = Building::new(10, 4)
+        .use_large_windows(false)
+        .light_mode(BuildingLightMode::Random);
+    let _ = test_building.construct(&mut stdout);
 }
