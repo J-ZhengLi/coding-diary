@@ -6,7 +6,7 @@
 use crate::{write, RawTerminal, Stdout};
 use rand::{thread_rng, Rng};
 use std::fmt::{Debug, Display};
-use termion::cursor::{DetectCursorPos, Goto};
+use termion::cursor::{DetectCursorPos, Down, Goto};
 
 #[derive(PartialEq)]
 pub enum UnicodeElement {
@@ -103,15 +103,15 @@ impl From<std::io::Error> for BuildingError {
 
 #[derive(Debug)]
 pub struct Building {
-    height: u8,
-    width: u8,
+    height: u16,
+    width: u16,
     shape: BuildingShape,
     large_windows: bool,
     light_mode: BuildingLightMode,
 }
 
 impl Building {
-    pub fn new(height: u8, width: u8) -> Self {
+    pub fn new(height: u16, width: u16) -> Self {
         Building {
             height,
             width,
@@ -157,15 +157,19 @@ impl Building {
         let (start_pos_x, mut start_pos_y) = raw_term.cursor_pos()?;
 
         // Because a 2D rectangular building will have left and right wall along with a roof.
-        // Use one more byte to make sure the values don't trigger overflow
-        let width_bound = (self.width as u16) + 1;
-        let roof_level = (self.height as u16) + 1;
+        let width_bound = self.width + 2;
+        let roof_level = self.height + 1;
 
         // First off, draw the roof level
         let flat_roof = char::from(UnicodeElement::Roof)
             .to_string()
             .repeat(self.width.into());
-        start_pos_y -= roof_level;
+        
+        // preventing subtract with overflow error
+        if start_pos_y > roof_level {
+            start_pos_y -= roof_level;
+        }
+
         let full_roof = format!(
             "{}{}{}{}",
             Goto(start_pos_x, start_pos_y),
@@ -181,8 +185,8 @@ impl Building {
         // The rest of building is drawn from top to buttom, left to right
         for h in 1..roof_level {
             write(raw_term, Goto(start_pos_x, start_pos_y + h));
-            for w in 0..=width_bound {
-                if w == 0 || w == width_bound {
+            for w in 0..width_bound {
+                if w == 0 || w == width_bound - 1 {
                     write(raw_term, char::from(UnicodeElement::Wall));
                 } else {
                     let light_off = match self.light_mode {
@@ -195,6 +199,7 @@ impl Building {
                 }
             }
         }
+        write(raw_term, Down(1));
 
         Ok(())
     }
