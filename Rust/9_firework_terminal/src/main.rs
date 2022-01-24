@@ -9,7 +9,8 @@
 
 mod background;
 
-use background::{Building, BuildingLightMode};
+use background::{Building, BuildingError, BuildingLightMode};
+use rand::{thread_rng, Rng};
 use std::fmt::Display;
 use std::io::{stdout, Stdout, Write};
 use termion::clear;
@@ -22,6 +23,51 @@ fn write<T: Display>(stdout: &mut RawTerminal<Stdout>, msg: T) {
     stdout.flush().unwrap();
 }
 
+/// Drawing multiple buildings as background in the current terminal window.
+/// Requires a reference of raw mode terminal.
+fn draw_buildings(
+    stdout: &mut RawTerminal<Stdout>,
+    default_width: u16,
+    default_height: u16,
+    max_gap: Option<u16>,
+) -> Result<(), BuildingError> {
+    // Get terminal size, we don't wanna construct buildings that exceeding that size
+    let (max_width, max_height) =
+        termion::terminal_size().unwrap_or((default_width, default_height));
+    // Also, make sure the drawing start from the left-bottom corner
+    write(stdout, termion::cursor::Goto(0, max_height));
+    let mut used_width = 0_u16;
+    let mut rng = thread_rng();
+
+    while used_width < max_width {
+        // Init a new building with a height that does not exceed terminal height / 4
+        // and a width that does not exceed terminal width / 10
+        let random_width: u16 = rng.gen_range(2..=max_width / 20);
+        // The width of building does not counting the 2 symbols that representing walls
+        // so, by adding it back will make sure there are no overlapping.
+        if used_width + (random_width + 2) > max_width {
+            break;
+        }
+        used_width += random_width + 2;
+        let random_height: u16 = rng.gen_range(2..=max_height / 3);
+        let has_large_wind: bool = rng.gen_bool(0.25);
+
+        let building = Building::new(random_height, random_width)
+            .use_large_windows(has_large_wind)
+            .light_mode(BuildingLightMode::Random);
+
+        // Draw building
+        building.construct(stdout)?;
+
+        if let Some(gap_limit) = max_gap {
+            let gap: u16 = rng.gen_range(0..=gap_limit);
+            write(stdout, " ".repeat(gap as usize));
+            used_width += gap;
+        }
+    }
+    Ok(())
+}
+
 fn main() {
     println!("Hello, world!");
 
@@ -31,9 +77,11 @@ fn main() {
     // Step 2, clear screen
     write(&mut stdout, clear::All);
 
-    // Test building
-    let test_building = Building::new(10, 4)
-        .use_large_windows(false)
-        .light_mode(BuildingLightMode::Random);
-    let _ = test_building.construct(&mut stdout);
+    // Step 3, draw static buildings as background
+    draw_buildings(&mut stdout, 120, 20, Some(2)).expect("Fail to draw background buildings.");
+
+    // Step 4, start loop, setup keyboard event handler that can break the loop,
+    // and add a small sleep timer to limit "framerate"
+    const delta_time: f32 = 0.333;
+    
 }
