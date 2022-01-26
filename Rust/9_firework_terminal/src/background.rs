@@ -4,9 +4,9 @@
 #![allow(dead_code)]
 
 use crate::{write, RawTerminal, Stdout};
+use termion::cursor::{DetectCursorPos, Down, Goto};
 use rand::{thread_rng, Rng};
 use std::fmt::{Debug, Display};
-use termion::cursor::{DetectCursorPos, Down, Goto};
 
 #[derive(PartialEq)]
 pub enum UnicodeElement {
@@ -164,7 +164,7 @@ impl Building {
         let flat_roof = char::from(UnicodeElement::Roof)
             .to_string()
             .repeat(self.width.into());
-        
+
         // preventing subtract with overflow error
         if start_pos_y > roof_level {
             start_pos_y -= roof_level;

@@ -8,12 +8,16 @@
 //!    content of the current cursor position (if any).
 
 mod background;
+mod firework;
 
 use background::{Building, BuildingError, BuildingLightMode};
 use rand::{thread_rng, Rng};
 use std::fmt::Display;
-use std::io::{stdout, Stdout, Write};
+use std::io::{stdin, stdout, Stdout, Write};
+use std::{thread, time::Duration};
 use termion::clear;
+use termion::event::Key;
+use termion::input::TermRead;
 use termion::raw::{IntoRawMode, RawTerminal};
 
 #[cold]
@@ -81,7 +85,22 @@ fn main() {
     draw_buildings(&mut stdout, 120, 20, Some(2)).expect("Fail to draw background buildings.");
 
     // Step 4, start loop, setup keyboard event handler that can break the loop,
-    // and add a small sleep timer to limit "framerate"
-    const delta_time: f32 = 0.333;
-    
+    // and add a small sleep timer to limit "framerate", roughly 30 fps
+    const FIXED_DELTA_TIME: Duration = Duration::from_millis(33);
+    let mut key_itor = stdin().keys();
+    'scene: loop {
+        // detect key press
+        if let Some(Ok(key)) = key_itor.next() {
+            match key {
+                Key::Esc | Key::Ctrl('c') => {
+                    break 'scene;
+                }
+                _ => {}
+            }
+        }
+
+        // Step 5, render firework in the loop
+
+        thread::sleep(FIXED_DELTA_TIME);
+    }
 }
