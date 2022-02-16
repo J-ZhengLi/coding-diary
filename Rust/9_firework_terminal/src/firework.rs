@@ -1,8 +1,10 @@
 //! # Make animated firework
-#![allow(dead_code)]
+//! 
+//! Different from the `background` mod,
+//! this module only contains stuctures that define the properties of a `Firework`
+//! without an method to output it to the window.
 
-use crate::{write, RawTerminal, Stdout};
-use termion::cursor::{DetectCursorPos, Down, Goto};
+#![allow(dead_code)]
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Color {
@@ -152,18 +154,6 @@ impl Firework {
     fn is_trail_bright(mut self, is_bright: bool) -> Self {
         self.is_trail_bright = is_bright;
         self
-    }
-
-    fn show(&self, raw_tem: &mut RawTerminal<Stdout>) {
-        // Get terminal size because firework shouldn't spawn out of window
-        // Don't do anything if terminal size cannot be fetched.
-        // yes, I'm too lazy to add Error type.
-        let (term_x, term_y) = termion::terminal_size().unwrap_or_default();
-        if term_x == 0 || term_y == 0 {
-            return;
-        }
-
-        
     }
 }
 
