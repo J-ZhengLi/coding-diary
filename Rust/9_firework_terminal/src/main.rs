@@ -73,8 +73,6 @@ fn draw_buildings(
 }
 
 fn main() {
-    println!("Hello, world!");
-
     // Step 1, mode switching
     let mut stdout = stdout().into_raw_mode().unwrap();
 
@@ -98,6 +96,7 @@ fn main() {
                 _ => {}
             }
         }
+        
 
         // Step 5, render firework in the loop
 
