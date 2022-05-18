@@ -1,17 +1,19 @@
 use gomoku_util::board::{Alignment, Board, Player};
+use gomoku_util::Point;
+use std::collections::hash_map::Entry;
 use std::{
-    cmp::max,
+    cmp::{max, min},
     fmt::{Display, Write},
     io::Stdout,
 };
-use termion::{raw::RawTerminal, terminal_size};
+use termion::terminal_size;
 
-use crate::{debug, rtwrite};
-use crate::{DetectCursorPos, Goto};
+use crate::common::{debug, rtwrite};
+use crate::{DetectCursorPos, Goto, RawTerminal};
 
 pub struct TermBoard {
     pub board: Board,
-    pub start_pos: (u16, u16),
+    pub start_pos: Point,
     boundary: (u16, u16, u16, u16),
 }
 
@@ -56,32 +58,58 @@ impl Display for BoardComponent {
     }
 }
 
-fn _get_start_pos(board: &Board) -> (u16, u16) {
-    let max_allowed_size = if let Ok(size) = terminal_size() {
-        size
-    } else {
-        return (0, 0);
-    };
+fn get_start_pos(board: &mut Board) -> (u16, u16) {
+    let max_allowed_size = terminal_size().unwrap_or_default();
 
-    let center_point = (max_allowed_size.0 / 2, max_allowed_size.1 / 2);
+    // adjust board size base on window size
+    board.width = min(board.width, max_allowed_size.0.saturating_sub(2));
+    board.height = min(board.height, max_allowed_size.1.saturating_sub(4));
+
+    let center = Point::new(max_allowed_size.0 / 2, max_allowed_size.1 / 2);
 
     match board.alignment {
-        Alignment::Left => (1, max(center_point.1 - board.height / 2 - 1, 1)),
+        Alignment::Left => (
+            1,
+            max(
+                center
+                    .y
+                    .saturating_sub(board.height / 2),
+                1,
+            ),
+        ),
         Alignment::Center => (
-            max(center_point.0 - board.width / 2 - 1, 1),
-            max(center_point.1 - board.height / 2 - 1, 1),
+            max(
+                center.x.saturating_sub(board.width / 2),
+                1,
+            ),
+            max(
+                center
+                    .y
+                    .saturating_sub(board.height / 2),
+                1,
+            ),
         ),
         Alignment::Right => (
-            max(max_allowed_size.0 - board.width + 2, 1),
-            max(center_point.1 - board.height / 2 - 1, 1),
+            max(
+                max_allowed_size
+                    .0
+                    .saturating_sub(board.width.saturating_add(2)),
+                1,
+            ),
+            max(
+                center
+                    .y
+                    .saturating_sub(board.height / 2),
+                1,
+            ),
         ),
     }
 }
 
 impl TermBoard {
     pub fn new(width: u16, height: u16) -> Self {
-        let board = Board::new(width, height);
-        let startpos = _get_start_pos(&board);
+        let mut board = Board::new(width, height);
+        let startpos = get_start_pos(&mut board);
         let boundary = (
             startpos.0,
             startpos.0 + 1 + board.width,
@@ -91,18 +119,21 @@ impl TermBoard {
 
         Self {
             board,
-            start_pos: startpos,
+            start_pos: startpos.into(),
             boundary,
         }
     }
 
+    /// Display a new board
     pub fn show(&self, out: &mut RawTerminal<Stdout>) {
-        let (startpos_x, startpos_y) = self.start_pos;
         let board = &self.board;
 
         // Draw the board from top to buttom, left to right
         for h in 0..board.height + 2 {
-            rtwrite(Goto(startpos_x, startpos_y + h), out);
+            rtwrite(
+                Goto(self.start_pos.x, self.start_pos.y.saturating_add(h)),
+                out,
+            );
             for w in 0..board.width + 2 {
                 let char_to_draw = match (w, h) {
                     (0, 0) => BoardComponent::BoarderTopLeft,
@@ -122,68 +153,79 @@ impl TermBoard {
         }
     }
 
-    fn _move_by_one(&self, delta_x: i32, delta_y: i32, out: &mut RawTerminal<Stdout>) {
+    pub fn refresh(&self, out: &mut RawTerminal<Stdout>) {
+        self.show(out);
+        self.move_to_center(out);
+    }
+
+    fn move_by(&self, distance: (i32, i32), out: &mut RawTerminal<Stdout>) {
         if let Ok(cur_pos) = out.cursor_pos() {
-            let dest_x = cur_pos.0 as i32 + delta_x;
-            let dest_y = cur_pos.1 as i32 + delta_y;
-            if dest_x > 0 && dest_y > 0 {
-                self.move_to(dest_x as u16, dest_y as u16, out)
-            }
+            let dest = Point::from(cur_pos) + distance;
+            self.move_to(dest, out)
         }
     }
 
     /// Check if given x, y cordinate is a valid point of current board
-    fn _is_valid_pos(&self, x: u16, y: u16) -> bool {
+    fn is_valid_pos(&self, pos: Point) -> bool {
         let (min_x, max_x, min_y, max_y) = self.boundary;
-        x > min_x && x < max_x && y > min_y && y < max_y
+        pos.x > min_x && pos.x < max_x && pos.y > min_y && pos.y < max_y
     }
 
     pub fn move_up(&self, out: &mut RawTerminal<Stdout>) {
-        self._move_by_one(0, -1, out)
+        self.move_by((0, -1), out)
     }
 
     pub fn move_down(&self, out: &mut RawTerminal<Stdout>) {
-        self._move_by_one(0, 1, out)
+        self.move_by((0, 1), out)
     }
 
     pub fn move_left(&self, out: &mut RawTerminal<Stdout>) {
-        self._move_by_one(-1, 0, out)
+        self.move_by((-1, 0), out)
     }
 
     pub fn move_right(&self, out: &mut RawTerminal<Stdout>) {
-        self._move_by_one(1, 0, out)
+        self.move_by((1, 0), out)
     }
 
-    pub fn move_to(&self, x: u16, y: u16, out: &mut RawTerminal<Stdout>) {
-        if self._is_valid_pos(x, y) {
-            rtwrite(Goto(x, y), out);
+    pub fn move_to(&self, dest: Point, out: &mut RawTerminal<Stdout>) {
+        if self.is_valid_pos(dest) {
+            rtwrite(Goto(dest.x, dest.y), out);
         }
     }
 
     pub fn move_to_center(&self, out: &mut RawTerminal<Stdout>) {
-        let (center_x, center_y) = (
-            self.start_pos.0 + self.board.highlight_pos.0,
-            self.start_pos.1 + self.board.highlight_pos.1,
-        );
-        self.move_to(center_x, center_y, out)
+        let center = Point {
+            x: self.boundary.0.saturating_add(self.boundary.1) / 2,
+            y: self.boundary.2.saturating_add(self.boundary.3) / 2,
+        };
+
+        self.move_to(center, out)
     }
 
     pub fn place_pawn(&mut self, out: &mut RawTerminal<Stdout>) {
         if let Ok(cur_pos) = out.cursor_pos() {
-            if !self.board.player_pos.contains_key(&cur_pos) {
-                debug(format!("{}: {}", &self.board.check(cur_pos, &self.board.cur_player), self.board.cur_player), out);
+            if let Entry::Vacant(_) = self.board.player_pos.entry(cur_pos) {
                 match self.board.cur_player {
                     Player::Black => {
                         rtwrite(BoardComponent::BlackPiece, out);
                         self.board.player_pos.insert(cur_pos, Player::Black);
-                        self.board.switch_player();
                     }
                     Player::White => {
                         rtwrite(BoardComponent::WhitePiece, out);
                         self.board.player_pos.insert(cur_pos, Player::White);
-                        self.board.switch_player();
                     }
                 }
+
+                debug(
+                    format!(
+                        "{:?}: {}, pos: {:?}",
+                        self.board.get_game_status(cur_pos.into(), self.board.cur_player),
+                        self.board.cur_player,
+                        cur_pos
+                    ),
+                    out,
+                );
+                self.board.switch_player();
             }
         }
     }
