@@ -3,7 +3,7 @@ pub mod game_settings;
 pub mod term_board;
 pub mod terminal_setting;
 
-use common::{debug, rtwrite};
+use common::rtwrite;
 use game_settings::GameSettings;
 use std::io::{stdin, stdout, Error, Stdout};
 use std::thread;
@@ -22,7 +22,7 @@ fn to_raw_mode(settings: Option<TermSettings>) -> Result<RawTerminal<Stdout>, Er
     if let Some(ts) = settings {
         rtwrite(ts, &mut s_out);
     }
-    return Ok(s_out);
+    Ok(s_out)
 }
 
 pub fn start_game(
@@ -34,14 +34,14 @@ pub fn start_game(
     let mut out = to_raw_mode(terminal_setting).expect("Unable to switch to raw mode.");
     let mut term_board = TermBoard::new(g_settings.board_size.0, g_settings.board_size.1);
 
-    term_board.show(&mut out);
-    term_board.move_to_center(&mut out);
+    term_board.refresh(&mut out);
 
     'game: loop {
         for key in stdin().keys() {
             let k = key?;
             match k {
                 Key::Esc | Key::Ctrl('c') => break 'game,
+                Key::Char('r') => term_board.refresh(&mut out),
                 Key::Up => term_board.move_up(&mut out),
                 Key::Down => term_board.move_down(&mut out),
                 Key::Left => term_board.move_left(&mut out),
@@ -54,6 +54,7 @@ pub fn start_game(
         thread::sleep(delta_time);
     }
 
+    // Game stopped, reset terminal
     rtwrite(
         format!("{}{}{}", TermSettings::default(), Goto(1, 1), clear::All),
         &mut out,

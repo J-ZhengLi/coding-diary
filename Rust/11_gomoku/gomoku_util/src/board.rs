@@ -1,11 +1,17 @@
-use std::cmp::{max, min};
-use std::collections::HashMap;
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
-#[derive(Debug, PartialEq)]
+use crate::Point;
+
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Player {
     Black,
     White,
+}
+
+#[derive(Debug)]
+pub enum GameStatus {
+    Running,
+    Over(Option<Player>),
 }
 
 impl Display for Player {
@@ -34,6 +40,7 @@ pub struct Board {
     pub highlight_pos: (u16, u16),
     pub alignment: Alignment,
     pub player_pos: HashMap<(u16, u16), Player>,
+    pub empty_count: usize,
 }
 
 impl Default for Board {
@@ -45,6 +52,7 @@ impl Default for Board {
             highlight_pos: (15 / 2, 15 / 2),
             alignment: Alignment::Center,
             player_pos: HashMap::new(),
+            empty_count: 15 * 15
         }
     }
 }
@@ -67,32 +75,17 @@ impl Board {
         }
     }
 
-    fn _check_common(
-        &self,
-        pos: (u16, u16),
-        bound: (u16, u16),
-        side_to_check: &str,
-        player: &Player,
-    ) -> u16 {
+    fn check_common(&self, pos: Point, dir_unit: (i32, i32), player: Player) -> u16 {
         let mut count: u16 = 0;
         let mut i = 1;
-        for _ in bound.0..bound.1 {
-            let neighbor_pos = match side_to_check {
-                "l" => (pos.0 - i, pos.1),
-                "r" => (pos.0 + i, pos.1),
-                "u" => (pos.0, pos.1 - 1),
-                "d" => (pos.0, pos.1 + 1),
-                "ul" => (pos.0 - i, pos.1 - 1),
-                "ur" => (pos.0 + i, pos.1 - 1),
-                "dl" => (pos.0 - i, pos.1 + 1),
-                "dr" => (pos.0 + i, pos.1 + 1),
-                _ => panic!("build failed, invalid side input"),
-            };
 
+        // This loop breaks when given position is empty or occupied by different player
+        loop {
+            let neighbor_pos = pos + (i * dir_unit.0, i * dir_unit.1);
             i += 1;
 
-            match self.player_pos.get(&neighbor_pos) {
-                Some(p) if p == player => {
+            match self.player_pos.get(&(neighbor_pos.x, neighbor_pos.y)) {
+                Some(p) if *p == player => {
                     count += 1;
                 }
                 _ => {
@@ -103,40 +96,41 @@ impl Board {
         count
     }
 
-    /// Check for neighbor stones on the left and on the right, and return how many stones
-    /// that have same color in a line
-    fn _horizontal_check(&self, pos: (u16, u16), player: &Player) -> u16 {
-        1 + self._check_common(pos, (0, pos.0), "l", player)
-            + self._check_common(pos, (pos.0 + 1, self.width), "r", player)
+    /// Check for stones line up in "-" direction
+    fn horizontal_check(&self, pos: Point, player: Player) -> u16 {
+        1 + self.check_common(pos, (-1, 0), player) + self.check_common(pos, (1, 0), player)
     }
 
-    fn _vertical_check(&self, pos: (u16, u16), player: &Player) -> u16 {
-        1 + self._check_common(pos, (0, pos.1), "u", player)
-            + self._check_common(pos, (pos.1 + 1, self.height), "d", player)
+    /// Check for stones line up in "|" direction
+    fn vertical_check(&self, pos: Point, player: Player) -> u16 {
+        1 + self.check_common(pos, (0, -1), player) + self.check_common(pos, (0, 1), player)
     }
 
-    fn _forward_diag_check(&self, pos: (u16, u16), player: &Player) -> bool {
-        false
+    /// Check for stones line up in "/" direction
+    fn forward_diag_check(&self, pos: Point, player: Player) -> u16 {
+        1 + self.check_common(pos, (1, -1), player) + self.check_common(pos, (-1, 1), player)
     }
 
-    fn _backward_diag_check(&self, pos: (u16, u16), player: &Player) -> bool {
-        false
+    /// Check for stones line up in "\" direction
+    fn backward_diag_check(&self, pos: Point, player: Player) -> u16 {
+        1 + self.check_common(pos, (-1, -1), player) + self.check_common(pos, (1, 1), player)
     }
 
-    pub fn check(&self, pos: (u16, u16), player: &Player) -> u16 {
-        let h_count = self._horizontal_check(pos, player);
-        let v_count = self._vertical_check(pos, player);
-
-        h_count
+    pub fn check(&self, pos: Point, player: Player, target_amount: u16) -> bool {
+        self.horizontal_check(pos, player) >= target_amount
+            || self.vertical_check(pos, player) >= target_amount
+            || self.forward_diag_check(pos, player) >= target_amount
+            || self.backward_diag_check(pos, player) >= target_amount
     }
-}
 
-pub trait BoardControls {
-    fn move_up(&self);
-    fn move_down(&self);
-    fn move_left(&self);
-    fn move_right(&self);
-    /// Move to any point in the board, (0, 0) representing the top left of the board
-    fn move_to(&self, to: (u16, u16));
-    fn place_pawn(&self, player: Player, position: Option<(u16, u16)>);
+    pub fn get_game_status(&self, pos: Point, player: Player) -> GameStatus {
+        if self.check(pos, player, 5) {
+            return GameStatus::Over(Some(player));
+        } else {
+            if self.empty_count == 0 {
+                return GameStatus::Over(None);
+            }
+            return GameStatus::Running;
+        }
+    }
 }
