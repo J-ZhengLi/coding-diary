@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 gomoku_util = { path = "gomoku_util" }
-gomoku_termion = { path = "gomoku_termion" }
+gomoku_term = { path = "gomoku_term" }

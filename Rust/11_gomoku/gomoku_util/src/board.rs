@@ -144,7 +144,7 @@ impl Board {
         if self.check(pos, player, 5) {
             GameStatus::Over(Some(player))
         } else if self.empty_count == 0 {
-                GameStatus::Over(None)
+            GameStatus::Over(None)
         } else {
             GameStatus::Running
         }
