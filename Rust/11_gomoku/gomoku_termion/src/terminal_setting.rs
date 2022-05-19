@@ -109,11 +109,8 @@ impl Default for TermSettings {
 }
 
 impl TermSettings {
-    pub fn new(clear: bool) -> Self {
-        Self {
-            clear_all: clear,
-            ..Default::default()
-        }
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn cursor_mode(&mut self, mode: CursorMode) -> Self {

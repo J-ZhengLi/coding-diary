@@ -37,7 +37,6 @@ pub struct Board {
     pub width: u16,
     pub height: u16,
     pub cur_player: Player,
-    pub highlight_pos: (u16, u16),
     pub alignment: Alignment,
     pub player_pos: HashMap<(u16, u16), Player>,
     pub empty_count: usize,
@@ -49,21 +48,18 @@ impl Default for Board {
             width: 15,
             height: 15,
             cur_player: Player::Black,
-            highlight_pos: (15 / 2, 15 / 2),
             alignment: Alignment::Center,
             player_pos: HashMap::new(),
-            empty_count: 15 * 15
+            empty_count: 15 * 15,
         }
     }
 }
 
 impl Board {
     pub fn new(width: u16, height: u16) -> Self {
-        let highlight_pos = (width / 2 + 1, height / 2 + 1);
         Self {
             width,
             height,
-            highlight_pos,
             ..Default::default()
         }
     }
@@ -73,6 +69,27 @@ impl Board {
             Player::Black => self.cur_player = Player::White,
             Player::White => self.cur_player = Player::Black,
         }
+    }
+
+    /// Initializing the game board
+    ///
+    /// Take ownership of starting player if provided.
+    pub fn init(&mut self, start_player: Option<&Player>) {
+        self.player_pos.clear();
+        self.empty_count = (self.width * self.height) as usize;
+        if let Some(p) = start_player {
+            self.cur_player = *p;
+        }
+    }
+
+    /// Adjust the current board's dimension
+    ///
+    /// Note this will also clear everything in it, including player's pawns
+    /// that are already placed on board.
+    pub fn resize(&mut self, new_width: u16, new_height: u16) {
+        self.width = new_width;
+        self.height = new_height;
+        self.init(None);
     }
 
     fn check_common(&self, pos: Point, dir_unit: (i32, i32), player: Player) -> u16 {
@@ -125,12 +142,11 @@ impl Board {
 
     pub fn get_game_status(&self, pos: Point, player: Player) -> GameStatus {
         if self.check(pos, player, 5) {
-            return GameStatus::Over(Some(player));
+            GameStatus::Over(Some(player))
+        } else if self.empty_count == 0 {
+                GameStatus::Over(None)
         } else {
-            if self.empty_count == 0 {
-                return GameStatus::Over(None);
-            }
-            return GameStatus::Running;
+            GameStatus::Running
         }
     }
 }

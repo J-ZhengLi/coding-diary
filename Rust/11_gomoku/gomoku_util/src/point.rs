@@ -18,6 +18,12 @@ impl From<(u16, u16)> for Point {
     }
 }
 
+impl From<Point> for (u16, u16) {
+    fn from(point: Point) -> Self {
+        (point.x, point.y)
+    }
+}
+
 impl Add for Point {
     type Output = Self;
 
