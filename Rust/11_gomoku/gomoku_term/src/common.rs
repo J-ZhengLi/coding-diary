@@ -1,35 +1,36 @@
-use std::cmp::max;
 use std::{
     fmt::Display,
-    io::{Stdout, Write},
+    io::{stdout, Write},
 };
 
-use crate::{DetectCursorPos, Goto, RawTerminal};
+use crossterm::cursor::{MoveTo, RestorePosition, SavePosition};
+use crossterm::{execute, queue, style::Print};
 
 #[cold]
 #[inline(never)]
 /// Write message/signal to given raw terminal
-pub fn rtwrite<T: Display>(msg: T, out: &mut RawTerminal<Stdout>) {
-    write!(out, "{}", msg).expect("Fail to display content");
+pub fn write<T: Display>(msg: T) {
+    execute!(stdout(), Print(msg)).expect("Unable to print content");
+}
+
+#[cold]
+#[inline(never)]
+/// Like `rtwrite` but allowing you to defy where to write messages
+pub fn write_at<T: Display>(msg: T, pos: (u16, u16)) {
+    let mut out = stdout();
+    queue!(
+        out,
+        SavePosition,
+        MoveTo(pos.0, pos.1),
+        Print(msg),
+        RestorePosition
+    )
+    .expect("Unable to print at given position");
     out.flush().unwrap_or_default();
 }
 
-/// Like `rtwrite` but allowing you to defy where to write messages
-pub fn write_at<T: Display>(msg: T, out: &mut RawTerminal<Stdout>, pos: (u16, u16)) {
-    if let Ok(orig_cursor_pos) = out.cursor_pos() {
-        let (rel_x, rel_y) = (max(1, pos.0), max(1, pos.1));
-        rtwrite(Goto(rel_x, rel_y), out);
-        rtwrite(msg, out);
-        rtwrite(Goto(orig_cursor_pos.0, orig_cursor_pos.1), out);
-    }
-}
-
 /// Write at specified position with center text alignment
-pub fn write_at_with_center_alignment<T: Display>(
-    msg: T,
-    out: &mut RawTerminal<Stdout>,
-    pos: (u16, u16),
-) {
+pub fn write_at_with_center_alignment<T: Display>(msg: T, pos: (u16, u16)) {
     let msg_string = format!("{}", &msg);
     let msg_lines = msg_string.lines();
     let msg_line_count = msg_string.lines().count();
@@ -45,12 +46,12 @@ pub fn write_at_with_center_alignment<T: Display>(
         }
         .try_into()
         .unwrap_or(u16::MAX);
-        write_at(format!("{}", line), out, (start_pos_x, start_pos_y));
+        write_at(format!("{}", line), (start_pos_x, start_pos_y));
         i += 1;
     }
 }
 
 /// Like `rtwrite` but this will write messages on top-left of current screen by default
-pub fn debug<T: Display>(msg: T, out: &mut RawTerminal<Stdout>) {
-    write_at(format!("[debug: {}]", msg), out, (1, 1));
+pub fn debug<T: Display>(msg: T) {
+    write_at(format!("debug: [{}]", msg), (1, 1));
 }
