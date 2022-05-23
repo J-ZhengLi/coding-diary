@@ -1,4 +1,4 @@
-use std::ops::Add;
+use std::ops::{Add, Sub};
 
 #[derive(Clone, Copy)]
 pub struct Point {
@@ -44,6 +44,14 @@ fn add_neg(lhs: u16, rhs: i32) -> u16 {
     }
 }
 
+fn sub_neg(lhs: u16, rhs: i32) -> u16 {
+    if rhs < 0 {
+        lhs.saturating_add((-rhs) as u16)
+    } else {
+        lhs.saturating_sub(rhs as u16)
+    }
+}
+
 impl Add<(u16, u16)> for Point {
     type Output = Self;
 
@@ -62,6 +70,17 @@ impl Add<(i32, i32)> for Point {
         Self {
             x: add_neg(self.x, rhs.0),
             y: add_neg(self.y, rhs.1),
+        }
+    }
+}
+
+impl Sub<(i32, i32)> for Point {
+    type Output = Self;
+
+    fn sub(self, rhs: (i32, i32)) -> Self::Output {
+        Self {
+            x: sub_neg(self.x, rhs.0),
+            y: sub_neg(self.y, rhs.1),
         }
     }
 }

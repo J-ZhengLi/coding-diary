@@ -1,5 +1,11 @@
-use crossterm::cursor::{CursorShape, DisableBlinking, EnableBlinking, Hide, SetCursorShape};
-use std::fmt::Display;
+use crossterm::{
+    cursor::{CursorShape, DisableBlinking, EnableBlinking, Hide, SetCursorShape},
+    queue,
+};
+use std::{
+    fmt::Display,
+    io::{stdout, Error, Write},
+};
 
 #[derive(Clone)]
 pub enum CursorMode {
@@ -35,6 +41,35 @@ impl Display for CursorMode {
             CM::Hidden => format!("{}", Hide),
         };
         f.write_str(&arguments)
+    }
+}
+
+fn set_cursor(shape: Option<CursorShape>, enable_blinking: bool) -> Result<(), Error> {
+    let mut stdout = stdout();
+    if shape.is_none() {
+        queue!(stdout, Hide)?;
+    }
+    if enable_blinking {
+        queue!(stdout, SetCursorShape(shape.unwrap()), EnableBlinking)?;
+    } else {
+        queue!(stdout, SetCursorShape(shape.unwrap()), DisableBlinking)?;
+    };
+    stdout.flush()?;
+    Ok(())
+}
+
+impl CursorMode {
+    pub fn set(&self) -> Result<(), Error> {
+        type CM = CursorMode;
+        match self {
+            CM::BlinkingBar => set_cursor(Some(CursorShape::Line), true),
+            CM::BlinkingBlock => set_cursor(Some(CursorShape::Block), true),
+            CM::BlinkingUnderline => set_cursor(Some(CursorShape::UnderScore), true),
+            CM::SteadyBar => set_cursor(Some(CursorShape::Line), false),
+            CM::SteadyBlock => set_cursor(Some(CursorShape::Block), false),
+            CM::SteadyUnderline => set_cursor(Some(CursorShape::UnderScore), false),
+            CM::Hidden => set_cursor(None, false),
+        }
     }
 }
 
