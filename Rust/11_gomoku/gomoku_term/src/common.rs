@@ -3,14 +3,22 @@ use std::{
     io::{stdout, Write},
 };
 
-use crossterm::cursor::{MoveTo, RestorePosition, SavePosition};
-use crossterm::{execute, queue, style::Print};
+use crossterm::{
+    cursor::{MoveTo, RestorePosition, SavePosition},
+    terminal, Command, ExecutableCommand,
+};
+use crossterm::{queue, style::Print};
 
-#[cold]
-#[inline(never)]
 /// Write message/signal to given raw terminal
 pub fn write<T: Display>(msg: T) {
-    execute!(stdout(), Print(msg)).expect("Unable to print content");
+    stdout()
+        .execute(Print(msg))
+        .expect("Unable to print content");
+}
+
+/// Execute command, this is more efficient then writing a formatted command
+pub fn execute<T: Command>(cmd: T) {
+    stdout().execute(cmd).expect("Unable to proccess command");
 }
 
 #[cold]
@@ -48,6 +56,12 @@ pub fn write_at_with_center_alignment<T: Display>(msg: T, pos: (u16, u16)) {
         .unwrap_or(u16::MAX);
         write_at(format!("{}", line), (start_pos_x, start_pos_y));
         i += 1;
+    }
+}
+
+pub fn write_at_screen_center<T: Display>(msg: T) {
+    if let Ok(size) = terminal::size() {
+        write_at_with_center_alignment(msg, (size.0 / 2, size.1 / 2));
     }
 }
 

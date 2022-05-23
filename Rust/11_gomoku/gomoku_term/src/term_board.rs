@@ -1,14 +1,26 @@
 use gomoku_util::board::{Alignment, Board, GameStatus, Player};
 use gomoku_util::Point;
 use std::collections::hash_map::Entry;
+use std::thread;
+use std::time::Duration;
 use std::{
     cmp::min,
     fmt::{Display, Write},
 };
 
-use crate::common::{debug, write, write_at_with_center_alignment};
-use crossterm::cursor::{position, MoveTo};
+use crate::common::{
+    debug, execute, write, write_at_screen_center, write_at_with_center_alignment,
+};
+use crossterm::cursor::{position, MoveDown, MoveLeft, MoveRight, MoveTo, MoveUp};
 use crossterm::terminal::{size, Clear, ClearType};
+
+#[derive(Clone, Copy)]
+pub enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
 
 pub struct TermBoard {
     pub board: Board,
@@ -21,9 +33,7 @@ pub struct TermBoard {
 /// Unicode characters representing parts of a Gomoku board
 pub enum BoardComponent {
     BlackPiece,
-    BlackPieceHL,
     WhitePiece,
-    WhitePieceHL,
     BoarderTop,
     BoarderBottom,
     BoarderLeft,
@@ -41,9 +51,7 @@ impl Display for BoardComponent {
         type BC = BoardComponent;
         let c = match self {
             BC::BlackPiece => '\u{25CF}',
-            BC::BlackPieceHL => '\u{25CF}',
             BC::WhitePiece => '\u{25CB}',
-            BC::WhitePieceHL => '\u{25CB}',
             BC::BoarderTop => '\u{2564}',
             BC::BoarderBottom => '\u{2567}',
             BC::BoarderLeft => '\u{255F}',
@@ -70,7 +78,10 @@ fn get_start_pos(board: &mut Board) -> (u16, u16) {
     let center = Point::new(max_allowed_size.0 / 2, max_allowed_size.1 / 2);
 
     match board.alignment {
-        Alignment::Left => (1, center.y.saturating_sub(board.height.saturating_add(2) / 2)),
+        Alignment::Left => (
+            1,
+            center.y.saturating_sub(board.height.saturating_add(2) / 2),
+        ),
         Alignment::Center => (
             center.x.saturating_sub(board.width.saturating_add(2) / 2),
             center.y.saturating_sub(board.height.saturating_add(2) / 2),
@@ -108,6 +119,10 @@ impl TermBoard {
         }
     }
 
+    pub fn new_with_default() -> Self {
+        Self::new(15, 15)
+    }
+
     /// Display a new board
     pub fn show(&self) {
         let board = &self.board;
@@ -118,9 +133,14 @@ impl TermBoard {
             for w in 0..board.width.saturating_add(2) {
                 let char_to_draw = match (w, h) {
                     (0, 0) => BoardComponent::BoarderTopLeft,
-                    (0, h) if h == board.height.saturating_add(1) => BoardComponent::BoarderBottomLeft,
+                    (0, h) if h == board.height.saturating_add(1) => {
+                        BoardComponent::BoarderBottomLeft
+                    }
                     (w, 0) if w == board.width.saturating_add(1) => BoardComponent::BoarderTopRight,
-                    (w, h) if w == board.width.saturating_add(1) && h == board.height.saturating_add(1) => {
+                    (w, h)
+                        if w == board.width.saturating_add(1)
+                            && h == board.height.saturating_add(1) =>
+                    {
                         BoardComponent::BoarderBottomRight
                     }
                     (_, 0) => BoardComponent::BoarderTop,
@@ -140,17 +160,13 @@ impl TermBoard {
 
     pub fn start_with_player(&mut self, start_player: Option<&Player>) {
         self.board.init(start_player);
-        write(Clear(ClearType::All));
+        execute(Clear(ClearType::All));
+        write_at_screen_center("Starting new game!");
+        thread::sleep(Duration::from_secs(1));
+        execute(Clear(ClearType::All));
         self.show();
         self.move_to_center();
         self.game_running = true;
-    }
-
-    fn move_by(&self, distance: (i32, i32)) {
-        if let Ok(cur_pos) = position() {
-            let dest = Point::from(cur_pos) + distance;
-            self.move_to(dest)
-        }
     }
 
     /// Check if given x, y cordinate is a valid point of current board
@@ -159,30 +175,25 @@ impl TermBoard {
         pos.x > min_x && pos.x < max_x && pos.y > min_y && pos.y < max_y
     }
 
-    pub fn move_up(&self) {
-        self.move_by((0, -1))
-    }
-
-    pub fn move_down(&self) {
-        self.move_by((0, 1))
-    }
-
-    pub fn move_left(&self) {
-        self.move_by((-1, 0))
-    }
-
-    pub fn move_right(&self) {
-        self.move_by((1, 0))
-    }
-
-    pub fn move_to(&self, dest: Point) {
-        if self.is_valid_pos(dest) {
-            write(MoveTo(dest.x, dest.y));
+    pub fn move_cursor(&self, distance: (i32, i32)) {
+        if self.game_running {
+            position().map_or((), |cur_pos| {
+                let des = Point::from(cur_pos) + distance;
+                if self.is_valid_pos(des) {
+                    match (distance.0, distance.1) {
+                        (0, y) if y.is_negative() => write(MoveUp(distance.1.abs() as u16)),
+                        (0, y) if y.is_positive() => write(MoveDown(distance.1 as u16)),
+                        (x, 0) if x.is_negative() => write(MoveLeft(distance.0.abs() as u16)),
+                        (x, 0) if x.is_positive() => write(MoveRight(distance.0 as u16)),
+                        _ => (),
+                    }
+                }
+            })
         }
     }
 
-    pub fn move_to_center(&self) {
-        self.move_to(self.center_pos)
+    pub fn move_to_center(&mut self) {
+        execute(MoveTo(self.center_pos.x, self.center_pos.y));
     }
 
     pub fn place_pawn(&mut self) {
@@ -202,12 +213,9 @@ impl TermBoard {
                         self.board.player_pos.insert(cur_pos, Player::White);
                     }
                 }
-                self.move_to(cur_pos.into());
+                write(MoveTo(cur_pos.0, cur_pos.1));
                 self.board.empty_count -= 1;
-                debug(format!(
-                    "{}",
-                    self.board.empty_count,
-                ));
+                debug(format!("{}", self.board.empty_count,));
                 if let GameStatus::Over(winner) = self
                     .board
                     .get_game_status(cur_pos.into(), self.board.cur_player)
