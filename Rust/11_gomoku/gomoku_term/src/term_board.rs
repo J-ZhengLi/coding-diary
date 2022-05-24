@@ -1,4 +1,4 @@
-use gomoku_util::board::{Alignment, Board, GameStatus, Player};
+use gomoku_util::board::{Board, GameStatus, Player};
 use gomoku_util::Point;
 use std::collections::hash_map::Entry;
 use std::thread;
@@ -13,14 +13,6 @@ use crate::common::{
 };
 use crossterm::cursor::{position, MoveDown, MoveLeft, MoveRight, MoveTo, MoveUp};
 use crossterm::terminal::{size, Clear, ClearType};
-
-#[derive(Clone, Copy)]
-pub enum Direction {
-    Up,
-    Down,
-    Left,
-    Right,
-}
 
 pub struct TermBoard {
     pub board: Board,
@@ -77,22 +69,10 @@ fn get_start_pos(board: &mut Board) -> (u16, u16) {
 
     let center = Point::new(max_allowed_size.0 / 2, max_allowed_size.1 / 2);
 
-    match board.alignment {
-        Alignment::Left => (
-            1,
-            center.y.saturating_sub(board.height.saturating_add(2) / 2),
-        ),
-        Alignment::Center => (
-            center.x.saturating_sub(board.width.saturating_add(2) / 2),
-            center.y.saturating_sub(board.height.saturating_add(2) / 2),
-        ),
-        Alignment::Right => (
-            max_allowed_size
-                .0
-                .saturating_sub(board.width.saturating_add(2)),
-            center.y.saturating_sub(board.height.saturating_add(2) / 2),
-        ),
-    }
+    (
+        center.x.saturating_sub(board.width.saturating_add(2) / 2),
+        center.y.saturating_sub(board.height.saturating_add(2) / 2),
+    )
 }
 
 impl TermBoard {
