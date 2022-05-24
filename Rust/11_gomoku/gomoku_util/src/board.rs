@@ -26,18 +26,10 @@ impl Display for Player {
 }
 
 #[derive(Debug)]
-pub enum Alignment {
-    Left,
-    Center,
-    Right,
-}
-
-#[derive(Debug)]
 pub struct Board {
     pub width: u16,
     pub height: u16,
     pub cur_player: Player,
-    pub alignment: Alignment,
     pub player_pos: HashMap<(u16, u16), Player>,
     pub empty_count: usize,
 }
@@ -48,7 +40,6 @@ impl Default for Board {
             width: 15,
             height: 15,
             cur_player: Player::Black,
-            alignment: Alignment::Center,
             player_pos: HashMap::new(),
             empty_count: 15 * 15,
         }
