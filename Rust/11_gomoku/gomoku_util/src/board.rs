@@ -51,6 +51,7 @@ impl Board {
         Self {
             width,
             height,
+            empty_count: (width * height) as usize,
             ..Default::default()
         }
     }

@@ -1,5 +1,18 @@
 use std::ops::{Add, Sub};
 
+pub trait Sum {
+    fn add(&self, rhs: (i32, i32)) -> Self;
+}
+
+impl Sum for (u16, u16) {
+    fn add(&self, rhs: (i32, i32)) -> (u16, u16) {
+        (
+            self.0.saturating_add(rhs.0 as u16),
+            self.1.saturating_add(rhs.1 as u16)
+        )
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct Point {
     pub x: u16,
