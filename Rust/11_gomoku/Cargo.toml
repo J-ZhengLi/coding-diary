@@ -8,3 +8,6 @@ edition = "2021"
 [dependencies]
 gomoku_util = { path = "gomoku_util" }
 gomoku_term = { path = "gomoku_term" }
+
+[workspace]
+members = [ "gomoku_util", "gomoku_term" ]

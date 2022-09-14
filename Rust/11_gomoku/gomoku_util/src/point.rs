@@ -8,15 +8,40 @@ impl Sum for (u16, u16) {
     fn add(&self, rhs: (i32, i32)) -> (u16, u16) {
         (
             self.0.saturating_add(rhs.0 as u16),
-            self.1.saturating_add(rhs.1 as u16)
+            self.1.saturating_add(rhs.1 as u16),
         )
     }
 }
 
-#[derive(Clone, Copy)]
-pub struct Point {
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Default)]
+pub struct Point {  
+
     pub x: u16,
     pub y: u16,
+}
+
+impl PartialOrd for Point {
+    fn ge(&self, other: &Self) -> bool {
+        self.x >= other.x && self.y >= other.y
+    }
+    fn gt(&self, other: &Self) -> bool {
+        self.x > other.x && self.y > other.y
+    }
+    fn le(&self, other: &Self) -> bool {
+        self.x <= other.x && self.y <= other.y
+    }
+    fn lt(&self, other: &Self) -> bool {
+        self.x < other.x && self.y < other.y
+    }
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let x_cmp = self.x.partial_cmp(&other.x);
+        let y_cmp = self.y.partial_cmp(&other.y);
+        if x_cmp == y_cmp {
+            x_cmp
+        } else {
+            None
+        }
+    }
 }
 
 impl Point {
@@ -95,5 +120,39 @@ impl Sub<(i32, i32)> for Point {
             x: sub_neg(self.x, rhs.0),
             y: sub_neg(self.y, rhs.1),
         }
+    }
+}
+
+impl Sub<Point> for Point {
+    type Output = Self;
+    fn sub(self, rhs: Point) -> Self::Output {
+        Self {
+            x: self.x.saturating_sub(rhs.x),
+            y: self.y.saturating_sub(rhs.y),
+        }
+    }
+}
+
+#[cfg(test)]
+mod point_test {
+    use super::Point;
+
+    #[test]
+    fn partial_ord_test() {
+        let a = Point { x: 1, y: 2 };
+        let b = Point::default();
+        assert!(a > b);
+
+        let a = Point { x: 10, y: 4 };
+        let b = Point { x: 5, y: 100};
+        // This was specifically set as incomparable, where non of the `<,>,<=,>=` would be true
+        assert_eq!(a > b, false);
+        assert_eq!(a < b, false);
+        assert_eq!(a >= b, false);
+        assert_eq!(a <= b, false);
+
+        let a = Point { x: 10, y: 10 };
+        let b = Point { x: 11, y: 100};
+        assert!(a <= b);
     }
 }
