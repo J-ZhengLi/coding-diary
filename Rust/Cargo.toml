@@ -1,0 +1,16 @@
+[workspace]
+resolver = "2"
+members = [
+    "1_gotcha_game",
+    "2_item_manager",
+    "3_item_parser",
+    "4_string_search_benchmark",
+    "5_global_mut_demo",
+    "6_simple_calculator",
+    "7_basic_logger",
+    "8_word_guesser",
+    "9_firework_terminal",
+    "10_basic_schedular",
+    "11_gomoku",
+    "12_jump_ferris",
+]

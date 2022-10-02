@@ -3,7 +3,6 @@ use crossterm::cursor::{position, MoveDown, MoveLeft, MoveRight, MoveTo, MoveUp}
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode, size, Clear, ClearType};
 use gomoku_util::board::{Board, GameStatus, Player};
 use gomoku_util::Point;
-use std::collections::hash_map::Entry;
 use std::thread;
 use std::time::Duration;
 use std::{
