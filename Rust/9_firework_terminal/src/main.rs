@@ -96,7 +96,6 @@ fn main() {
                 _ => {}
             }
         }
-        
 
         // Step 5, render firework in the loop
 

@@ -10,7 +10,9 @@ use std::{
     fmt::{Display, Write},
 };
 
-use crate::common::{execute, write, write_at_screen_center, write_at_with_center_alignment, debug};
+use crate::common::{
+    debug, execute, write, write_at_screen_center, write_at_with_center_alignment,
+};
 use crate::settings::CursorMode;
 pub struct TermBoard<'b> {
     pub board: Board<'b>,
@@ -172,9 +174,13 @@ impl<'b> TermBoard<'b> {
                 let des = Point::from(cur_pos) + distance;
                 if self.is_valid_pos(des) {
                     match (distance.0, distance.1) {
-                        (0, y) if y.is_negative() => write(MoveUp(distance.1.abs() as u16))?,
+                        (0, y) if y.is_negative() => {
+                            write(MoveUp(distance.1.unsigned_abs() as u16))?
+                        }
                         (0, y) if y.is_positive() => write(MoveDown(distance.1 as u16))?,
-                        (x, 0) if x.is_negative() => write(MoveLeft(distance.0.abs() as u16))?,
+                        (x, 0) if x.is_negative() => {
+                            write(MoveLeft(distance.0.unsigned_abs() as u16))?
+                        }
                         (x, 0) if x.is_positive() => write(MoveRight(distance.0 as u16))?,
                         _ => (),
                     }
@@ -195,7 +201,12 @@ impl<'b> TermBoard<'b> {
 
         if let Ok(cur_pos) = position().map(Point::from) {
             let pos = self.real_pos(cur_pos)?;
-            debug(format!("pos: {:?}, real_pos: {:?}, val: {:?}", cur_pos, pos, self.board.board_pos.get(&cur_pos)))?;
+            debug(format!(
+                "pos: {:?}, real_pos: {:?}, val: {:?}",
+                cur_pos,
+                pos,
+                self.board.board_pos.get(&cur_pos)
+            ))?;
             if self.board.is_vacant(cur_pos) {
                 let (pawn, status) = self.board.place_pawn(cur_pos);
                 match pawn {
@@ -211,7 +222,7 @@ impl<'b> TermBoard<'b> {
                     let msg = if let Some(winner) = winner {
                         format!("Game Over\n[{} Wins!]\n\nPress <R> to restart", winner)
                     } else {
-                        format!("Game Over\n[Draw]\n\nPress <R> to restart")
+                        "Game Over\n[Draw]\n\nPress <R> to restart".to_string()
                     };
                     write_at_with_center_alignment(msg, self.center_pos.into())?;
                     self.game_running = false;

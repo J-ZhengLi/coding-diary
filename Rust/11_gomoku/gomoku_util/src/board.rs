@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Display};
 
 use crate::Point;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Player<'b> {
     Black(&'b str),
     White(&'b str),

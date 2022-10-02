@@ -10,7 +10,7 @@ cfg_if::cfg_if! {
                 .await.expect("Could not connect to given url.")
                 .text()
                 .await.expect("Fail to get the full response text.");
-            
+
             body
         }
 
@@ -21,7 +21,7 @@ cfg_if::cfg_if! {
                 .build()
                 .unwrap()
                 .block_on(async { load_from_url(SOURCE_URL).await });
-            
+
             let splitted = full_text.split("<li>");
             let mut result: Vec<String> = Vec::<String>::new();
             for s in splitted {

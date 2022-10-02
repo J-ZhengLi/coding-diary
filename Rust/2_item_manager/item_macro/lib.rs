@@ -1,14 +1,14 @@
 use proc_macro::TokenStream;
-use syn::{AngleBracketedGenericArguments, DataStruct, DeriveInput, TypePath, parse_macro_input};
 use quote::quote;
+use syn::{parse_macro_input, AngleBracketedGenericArguments, DataStruct, DeriveInput, TypePath};
 
 /// Option type unwrapper for Builder macro.
-/// 
+///
 /// Unwrap option type if the field is already known,
 /// if the given type is not an Option<> type, do nothing.
-/// 
+///
 /// # Example
-/// 
+///
 /// ---------------------------------------
 /// ```rust
 /// let (success, unwrapped) = unwrap_option(ty);
@@ -18,17 +18,17 @@ use quote::quote;
 ///     println!("origin type is not Option<> wrapped, return the original reference");
 /// }
 /// ```
-fn unwrap_option(ty: &syn::Type) -> (bool, &syn::Type){
+fn unwrap_option(ty: &syn::Type) -> (bool, &syn::Type) {
     let mut is_already_option: bool = false;
 
-    if let syn::Type::Path(TypePath {ref path, ..}) = ty {
-        if path.segments.len() != 0 && path.segments[0].ident == "Option" {
+    if let syn::Type::Path(TypePath { ref path, .. }) = ty {
+        if !path.segments.is_empty() && path.segments[0].ident == "Option" {
             is_already_option = true;
-            
-            if let syn::PathArguments::AngleBracketed (
-                AngleBracketedGenericArguments { args, .. }
-            ) = &path.segments[0].arguments {
 
+            if let syn::PathArguments::AngleBracketed(AngleBracketedGenericArguments {
+                args, ..
+            }) = &path.segments[0].arguments
+            {
                 if args.len() != 1 {
                     panic!("I've never seen anything like this!");
                 }
@@ -45,17 +45,16 @@ fn unwrap_option(ty: &syn::Type) -> (bool, &syn::Type){
 
 #[proc_macro_derive(Builder)]
 pub fn derivce_builder(input: TokenStream) -> TokenStream {
-    let DeriveInput {ident, data, .. } = parse_macro_input!(input);
+    let DeriveInput { ident, data, .. } = parse_macro_input!(input);
     let builder_name = format!("{}Builder", ident);
     let builder_ident = syn::Ident::new(&builder_name, ident.span());
-    
+
     let named_fields = match data {
-        syn::Data::Struct(
-            DataStruct {fields: syn::Fields::Named(syn::FieldsNamed {ref named, .. }), .. }
-        ) => {
-            named
-        },
-        _ => unimplemented!()
+        syn::Data::Struct(DataStruct {
+            fields: syn::Fields::Named(syn::FieldsNamed { ref named, .. }),
+            ..
+        }) => named,
+        _ => unimplemented!(),
     };
 
     let fields = named_fields.iter().map(|n| {
@@ -94,7 +93,7 @@ pub fn derivce_builder(input: TokenStream) -> TokenStream {
 
         quote! { #name: None }
     });
-    
+
     let expended = quote! {
         pub struct #builder_ident {
             #(#fields,)*
@@ -118,7 +117,7 @@ pub fn derivce_builder(input: TokenStream) -> TokenStream {
             }
         }
     };
-    
+
     TokenStream::from(expended)
 }
 
@@ -126,26 +125,31 @@ pub fn derivce_builder(input: TokenStream) -> TokenStream {
 /// in a more decent way
 #[proc_macro_derive(Show, attributes(color))]
 pub fn derive_show(input: TokenStream) -> TokenStream {
-    let DeriveInput {ident, ref data, .. } = parse_macro_input!(input);
+    let DeriveInput {
+        ident, ref data, ..
+    } = parse_macro_input!(input);
 
     // Because in both struct and union, there is a Punctuated<field, comma> type,
     // where in enum, there is none but a Punctuated<variant, comma> type,
     // so the enum type should be considered separatly
     let enum_content = match data {
-        syn::Data::Enum(syn::DataEnum {variants, .. }) => Some(variants),
-        _ => None
+        syn::Data::Enum(syn::DataEnum { variants, .. }) => Some(variants),
+        _ => None,
     };
 
     let named_content = match data {
-        syn::Data::Struct(syn::DataStruct {fields, ..}) => {
+        syn::Data::Struct(syn::DataStruct { fields, .. }) => {
             match fields {
-                syn::Fields::Named(syn::FieldsNamed {named, ..}) => Some(named),
+                syn::Fields::Named(syn::FieldsNamed { named, .. }) => Some(named),
                 // ignore unnamed fields and unit type because it doesn't make sense
-                _ => unimplemented!()
+                _ => unimplemented!(),
             }
-        },
-        syn::Data::Union(syn::DataUnion {fields: syn::FieldsNamed {named, ..}, ..}) => Some(named),
-        _ => None
+        }
+        syn::Data::Union(syn::DataUnion {
+            fields: syn::FieldsNamed { named, .. },
+            ..
+        }) => Some(named),
+        _ => None,
     };
 
     let contents = match enum_content {
@@ -159,12 +163,21 @@ pub fn derive_show(input: TokenStream) -> TokenStream {
 
                 // super ugly code, fix later
                 for attr in &f.attrs {
-                    if let Ok(syn::Meta::NameValue(syn::MetaNameValue {path: syn::Path {segments, ..}, lit, ..})) = attr.parse_meta() {
+                    if let Ok(syn::Meta::NameValue(syn::MetaNameValue {
+                        path: syn::Path { segments, .. },
+                        lit,
+                        ..
+                    })) = attr.parse_meta()
+                    {
                         for seg in &segments {
                             if seg.ident == "color" {
                                 if let syn::Lit::Str(ref lstr) = lit {
                                     let lit_val = lstr.value();
-                                    result = format!("{}{}\x1b[0m", color_platte(lit_val.as_str()), name);
+                                    result = format!(
+                                        "{}{}\x1b[0m",
+                                        color_platte(lit_val.as_str()),
+                                        name
+                                    );
                                 }
                             }
                         }
@@ -175,7 +188,7 @@ pub fn derive_show(input: TokenStream) -> TokenStream {
             });
 
             quote! {#(#var_list)*}
-        },
+        }
         None => {
             match named_content {
                 Some(n) => {
@@ -184,7 +197,7 @@ pub fn derive_show(input: TokenStream) -> TokenStream {
                         let name = &f.ident;
                         let name_title = match name {
                             Some(s) => s.to_string(),
-                            None => String::from("_")
+                            None => String::from("_"),
                         };
 
                         quote! {
@@ -192,8 +205,8 @@ pub fn derive_show(input: TokenStream) -> TokenStream {
                         }
                     });
                     quote! {#(#named_fields_quote)*}
-                },
-                None => panic!("Unsupported type for implementation.)")
+                }
+                None => panic!("Unsupported type for implementation.)"),
             }
         }
     };
@@ -212,9 +225,9 @@ pub fn derive_show(input: TokenStream) -> TokenStream {
 }
 
 /// Function to get specific color hex formatting string base on color name.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```rust
 /// let red_color = color_platte("red");
 /// assert_eq!(red_color, "\x1b[31;1m{}\x1b[0m");
@@ -227,6 +240,6 @@ fn color_platte(color: &str) -> String {
         "blue" => String::from("\x1b[34;1m"),
         "cyan" => String::from("\x1b[36;1m"),
         "white" => String::from("\x1b[37;1m"),
-        _ => unimplemented!("The color you input has not been implement yet.")
+        _ => unimplemented!("The color you input has not been implement yet."),
     }
 }

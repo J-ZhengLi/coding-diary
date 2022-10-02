@@ -4,11 +4,11 @@
 #![allow(dead_code)]
 
 use crate::{write, RawTerminal, Stdout};
-use termion::cursor::{DetectCursorPos, Down, Goto};
 use rand::{thread_rng, Rng};
 use std::fmt::{Debug, Display};
+use termion::cursor::{DetectCursorPos, Down, Goto};
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum UnicodeElement {
     Roof,
     ThickRoof,
@@ -59,7 +59,7 @@ impl From<UnicodeElement> for char {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum BuildingShape {
     Rectangular,
     Sphere,
@@ -67,7 +67,7 @@ pub enum BuildingShape {
     TriangleTop,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum BuildingLightMode {
     On,
     Off,

@@ -7,6 +7,7 @@
 //! and one for processing the guesses.
 
 use guess_core::get_word_list;
+use once_cell::sync::OnceCell;
 use std::fmt::Display;
 use std::io::{self, stdin, Read, Write};
 use std::sync::{
@@ -14,12 +15,11 @@ use std::sync::{
     Arc, Mutex,
 };
 use std::{thread, time::Duration};
+use strsim::normalized_levenshtein;
 use termion::{
     cursor::{self, DetectCursorPos},
     raw::IntoRawMode,
 };
-use strsim::normalized_levenshtein;
-use once_cell::sync::OnceCell;
 
 fn add_char(mutex_s: &Mutex<String>, ch: char) {
     let mut old_s = mutex_s
@@ -62,14 +62,12 @@ fn find_similar_word_in_list(word: &str, list: &Vec<String>) -> Option<String> {
 }
 
 fn make_guess(input: &str) -> String {
-    let words: &Vec<String> = WORDS_CELL.get_or_init(|| {
-        get_word_list()
-    });
+    let words: &Vec<String> = WORDS_CELL.get_or_init(get_word_list);
 
     let prefix: String = "Did you mean: ".to_string();
     match find_similar_word_in_list(input, words) {
         Some(w) => format!("\x1b[33;1m{}\"{}\"?\x1b[0m", prefix, w),
-        None => format!("\x1b[33;1mSorry... I could't guess~\x1b[0m")
+        None => "\x1b[33;1mSorry... I could't guess~\x1b[0m".to_string(),
     }
 }
 
@@ -99,8 +97,10 @@ fn main() {
     print!("\r{}", termion::clear::CurrentLine);
     io::stdout().flush().unwrap();
 
-    basic_print("\nType anything, I will guess what's in your mind~\n\r\
-                Press [ESC] to quit.\n\n\r");
+    basic_print(
+        "\nType anything, I will guess what's in your mind~\n\r\
+                Press [ESC] to quit.\n\n\r",
+    );
 
     // Thread to read input and prints it out on console
     let input_handler = thread::spawn(move || {

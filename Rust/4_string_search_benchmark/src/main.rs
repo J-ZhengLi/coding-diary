@@ -1,15 +1,15 @@
 use aho_corasick::AhoCorasick;
 use memchr::memmem;
-use std::time::{Instant, Duration};
+use std::time::{Duration, Instant};
 
 fn parse_duration(duration: Duration) -> String {
     let dur_micro = duration.as_micros();
     if dur_micro > 1_000_000 {
-        return format!("\x1b[31;1m{} seconds\x1b[0m", duration.as_secs_f32());    // red
+        format!("\x1b[31;1m{} seconds\x1b[0m", duration.as_secs_f32()) // red
     } else if dur_micro > 1_000 {
-        return format!("\x1b[33;1m{} milliseconds\x1b[0m", duration.as_millis());   // yellow
+        format!("\x1b[33;1m{} milliseconds\x1b[0m", duration.as_millis()) // yellow
     } else {
-        return format!("\x1b[36;1m{} microseconds\x1b[0m", dur_micro);   // cyan
+        format!("\x1b[36;1m{} microseconds\x1b[0m", dur_micro) // cyan
     }
 }
 
@@ -19,10 +19,9 @@ fn native_search(words: &[&str], context: &[u8], find_all: bool) {
 
     if words.len() == 1 {
         if find_all {
-            let result: Vec<_> = str_context.match_indices(words[0]).collect();
             println!(
                 "[native] Found {} occurance of word \"{}\" in {}",
-                result.len(),
+                str_context.match_indices(words[0]).count(),
                 words[0],
                 parse_duration(timer.elapsed())
             );
@@ -50,19 +49,18 @@ fn native_search(words: &[&str], context: &[u8], find_all: bool) {
         let mut counter: usize = 0;
         for &word in words {
             if find_all {
-                let result: Vec<_> = str_context.match_indices(word).collect();
-                counter += result.len();
+                counter += str_context.match_indices(word).count();
             } else {
                 match str_context.find(word) {
                     Some(_) => {
                         counter += 1;
                         break;
-                    },
-                    None => { }
+                    }
+                    None => {}
                 }
             }
         }
-                
+
         println!(
             "[native] Found {} occurance of words \"{:?}\" in {}",
             counter,
@@ -117,7 +115,7 @@ fn memmem_search(words: &[&str], context: &[u8], find_all: bool) {
                     Some(_) => {
                         counter += 1;
                         break;
-                    },
+                    }
                     None => {}
                 }
             }
@@ -179,10 +177,18 @@ fn main() {
 
     let three_words = &["tHGp3FEBx7", "skJCoFTN93", "fNx8YU"];
 
-    let ten_words = &["Hq6JYTKV", "7SC4yc4Vt", "58PjWm",
-                                "3tRoIEot", "97OUJh", "i6xiuKP",
-                                "fbkB0PB", "RUfmE4la", "H46v",
-                                "A_NON_EXISTING_WORD"];
+    let ten_words = &[
+        "Hq6JYTKV",
+        "7SC4yc4Vt",
+        "58PjWm",
+        "3tRoIEot",
+        "97OUJh",
+        "i6xiuKP",
+        "fbkB0PB",
+        "RUfmE4la",
+        "H46v",
+        "A_NON_EXISTING_WORD",
+    ];
 
     println!(
         "\n==================== Finding non-existing string (worst-case) ===================="
@@ -212,9 +218,7 @@ fn main() {
     memmem_search(three_words, full_text, false);
     aho_corasick_seach(three_words, full_text, false);
 
-    println!(
-        "\n==================== Finding all occurrance of three strings ===================="
-    );
+    println!("\n==================== Finding all occurrance of three strings ====================");
     native_search(three_words, full_text, true);
     memmem_search(three_words, full_text, true);
     aho_corasick_seach(three_words, full_text, true);
@@ -226,9 +230,7 @@ fn main() {
     memmem_search(ten_words, full_text, false);
     aho_corasick_seach(ten_words, full_text, false);
 
-    println!(
-        "\n==================== Finding all occurrance of ten strings ===================="
-    );
+    println!("\n==================== Finding all occurrance of ten strings ====================");
     native_search(ten_words, full_text, true);
     memmem_search(ten_words, full_text, true);
     aho_corasick_seach(ten_words, full_text, true);

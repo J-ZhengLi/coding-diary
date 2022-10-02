@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use calculator_util::{ExprParser, number::Number};
+use calculator_util::{number::Number, ExprParser};
 
 fn eval_test_common(input: &str, expected: Number) {
     let input_string: String = input.to_string();
@@ -35,5 +35,8 @@ fn eval_trig() {
 
 #[test]
 fn eval_sp_ops() {
-    eval_test_common("2 * tan(45) + 8 ^ 2 - abs(-2 * 3) + cos(sqrt(3600))", Number::from(60.5));
+    eval_test_common(
+        "2 * tan(45) + 8 ^ 2 - abs(-2 * 3) + cos(sqrt(3600))",
+        Number::from(60.5),
+    );
 }

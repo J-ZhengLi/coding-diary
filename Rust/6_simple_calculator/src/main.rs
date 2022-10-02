@@ -22,10 +22,14 @@ fn main() {
     loop {
         print!("[Input]> ");
         let _ = io::stdout().flush();
-        io::stdin().read_line(&mut input).expect("Fail to read input.");
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Fail to read input.");
 
         match input.trim() {
-            "exit" | "e" | "E" => { break; },
+            "exit" | "e" | "E" => {
+                break;
+            }
             _ => {
                 let exp = input.to_string();
                 let res = exp.eval();

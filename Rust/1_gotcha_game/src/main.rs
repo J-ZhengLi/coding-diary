@@ -146,7 +146,7 @@ impl std::fmt::Display for Item {
 }
 
 /// Change the color of string literal with specified color in Unix system
-/// 
+///
 /// # Example
 /// ```rust
 /// let red_bold_hello = coloring_str("Hello!", Color::Red);
@@ -182,7 +182,7 @@ fn pull(count: u8) -> (Vec<Item>, u8) {
 
         // generate a float between 0-1
         let item_roll_num: f64 = random::float();
-        
+
         if item_roll_num < MAX_OF_LEGENDARY {
             item.rarity = Rarity::Legendary;
             item.name = random::element_in_slice(&LEGENDARY_ITEMS)
@@ -270,8 +270,7 @@ fn main() {
                     if refund > 0 {
                         println!(
                             "Pulled: [{0}] (You got a {1} back!)",
-                            res[0],
-                            NAME_OF_TICKET
+                            res[0], NAME_OF_TICKET
                         );
                     } else {
                         ticket_count -= 1;

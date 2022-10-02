@@ -83,14 +83,10 @@ impl Log for Logger {
         if self.enabled(record.metadata()) {
             let formattable =
                 format_description::parse(&self.ts_format).expect("Fail to format time string.");
-            let timestamp = format!(
-                "{}",
-                OffsetDateTime::now_local()
-                    .expect("Fail to get local time")
-                    .format(&formattable)
-                    .unwrap_or_default()
-            );
-
+            let timestamp = OffsetDateTime::now_local()
+                .expect("Fail to get local time")
+                .format(&formattable)
+                .unwrap_or_default();
             let target = if record.target().is_empty() {
                 record.module_path().unwrap_or_default()
             } else {

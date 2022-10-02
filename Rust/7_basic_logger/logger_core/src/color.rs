@@ -34,22 +34,22 @@ impl ColoredStr {
         self
     }
 
-    pub fn bold<'a>(&'a mut self) -> &'a mut Self {
+    pub fn bold(&mut self) -> &mut Self {
         self.bold = true;
         self
     }
 
-    pub fn bright<'a>(&'a mut self) -> &'a mut Self {
+    pub fn bright(&mut self) -> &mut Self {
         self.bright = true;
         self
     }
 
-    pub fn underline<'a>(&'a mut self) -> &'a mut Self {
+    pub fn underline(&mut self) -> &mut Self {
         self.underline = true;
         self
     }
 
-    pub fn color<'a>(&'a mut self, co: Color) -> &'a mut Self {
+    pub fn color(&mut self, co: Color) -> &mut Self {
         self.color = co;
         self
     }

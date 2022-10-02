@@ -42,8 +42,7 @@ pub fn write_at_with_center_alignment<T: Display>(msg: T, pos: (u16, u16)) -> Re
     let msg_string = format!("{}", &msg);
     let msg_lines = msg_string.lines();
     let msg_line_count = msg_string.lines().count();
-    let mut i = 0;
-    for line in msg_lines {
+    for (i, line) in msg_lines.enumerate() {
         let start_pos_x = pos
             .0
             .saturating_sub((line.len() / 2).try_into().unwrap_or(u16::MAX));
@@ -54,8 +53,7 @@ pub fn write_at_with_center_alignment<T: Display>(msg: T, pos: (u16, u16)) -> Re
         }
         .try_into()
         .unwrap_or(u16::MAX);
-        write_at(format!("{}", line), (start_pos_x, start_pos_y))?;
-        i += 1;
+        write_at(line.to_string(), (start_pos_x, start_pos_y))?;
     }
     Ok(())
 }

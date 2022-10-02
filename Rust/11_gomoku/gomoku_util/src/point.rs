@@ -14,8 +14,7 @@ impl Sum for (u16, u16) {
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Default)]
-pub struct Point {  
-
+pub struct Point {
     pub x: u16,
     pub y: u16,
 }
@@ -144,7 +143,7 @@ mod point_test {
         assert!(a > b);
 
         let a = Point { x: 10, y: 4 };
-        let b = Point { x: 5, y: 100};
+        let b = Point { x: 5, y: 100 };
         // This was specifically set as incomparable, where non of the `<,>,<=,>=` would be true
         assert_eq!(a > b, false);
         assert_eq!(a < b, false);
@@ -152,7 +151,7 @@ mod point_test {
         assert_eq!(a <= b, false);
 
         let a = Point { x: 10, y: 10 };
-        let b = Point { x: 11, y: 100};
+        let b = Point { x: 11, y: 100 };
         assert!(a <= b);
     }
 }

@@ -1,12 +1,12 @@
 //! # Make animated firework
-//! 
+//!
 //! Different from the `background` mod,
 //! this module only contains stuctures that define the properties of a `Firework`
 //! without an method to output it to the window.
 
 #![allow(dead_code)]
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Color {
     Red,
     Green,
@@ -60,10 +60,7 @@ pub struct Firework {
 }
 
 fn calculate_spawn_point(size: u16, height: u16) -> (u16, u16) {
-    (
-        (size as f32 / 2.0).ceil() as u16,
-        height
-    )
+    ((size as f32 / 2.0).ceil() as u16, height)
 }
 
 impl Firework {
@@ -131,6 +128,7 @@ impl Firework {
         self
     }
 
+    #[allow(clippy::wrong_self_convention)]
     fn is_bright(mut self, is_bright: bool) -> Self {
         self.is_bright = is_bright;
         self
@@ -151,6 +149,7 @@ impl Firework {
         self
     }
 
+    #[allow(clippy::wrong_self_convention)]
     fn is_trail_bright(mut self, is_bright: bool) -> Self {
         self.is_trail_bright = is_bright;
         self
