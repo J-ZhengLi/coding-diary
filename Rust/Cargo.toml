@@ -14,3 +14,12 @@ members = [
     "11_gomoku",
     "12_jump_ferris",
 ]
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.dev.package.jump-ferris]
+opt-level = 1
+
+[profile.release]
+lto = "thin"

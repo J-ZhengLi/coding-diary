@@ -55,7 +55,7 @@ impl PlatformCfg {
         self.platforms.remove(idx)
     }
     /// Remove a platform by its id.
-    /// 
+    ///
     /// This method is fairly expensive, as it will loop through all the platforms
     /// trying to find and delete the one with given id, then return the deleted object.
     pub fn remove_by_id(&mut self, id: u32) -> Option<Platform> {
@@ -70,7 +70,7 @@ impl PlatformCfg {
         self.platforms.get(idx)
     }
     /// Find a platform by its id.
-    /// 
+    ///
     /// This method is relatively expensive, as it loop through each objects
     /// to find a matching id.
     pub fn get_by_id(&self, id: u32) -> Option<&Platform> {

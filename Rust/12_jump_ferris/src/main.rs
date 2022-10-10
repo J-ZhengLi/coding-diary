@@ -1,6 +1,7 @@
-mod plugins;
+pub mod layers;
 mod license;
 mod platform_config;
+mod plugins;
 
 pub use platform_config::PlatformCfg;
 

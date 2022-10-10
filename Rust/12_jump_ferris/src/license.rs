@@ -1,6 +1,6 @@
-use std::str::FromStr;
 use anyhow::Error as AnyError;
 use serde::Deserialize;
+use std::str::FromStr;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -56,7 +56,7 @@ mod credit_tests {
             "license-detail": "optional license detail in case some assets don't have any license"
         }
         "#;
-        let credit =  credit_str.parse::<AssetCredit>().unwrap();
+        let credit = credit_str.parse::<AssetCredit>().unwrap();
 
         assert_eq!(credit.title, "asset title");
         assert_eq!(credit.url, "http://hostname.of/asset");
