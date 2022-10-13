@@ -5,7 +5,7 @@ use rand::{thread_rng, Rng};
 
 const MAX_NUM_OF_CLOUDS: u8 = 8;
 const BG_COLOR: Color = Color::rgb(0.4196, 0.7765, 1.0);
-const BG_SCALE: Vec3 = Vec3::splat(DEFAULT_WIDTH / 320.0);
+pub const BG_SCALE: Vec3 = Vec3::splat(DEFAULT_WIDTH / 320.0);
 
 pub struct BackgroundPlugin;
 
@@ -198,7 +198,17 @@ fn random_floating_clouds(
     mut timer: ResMut<AnimTimer>,
     time: Res<Time>,
     texture_atlases: Res<Assets<TextureAtlas>>,
-    mut clouds: Query<(&mut Transform, &mut Visibility, &mut TextureAtlasSprite, &Handle<TextureAtlas>, &Speed, &AnimDirection), With<Clouds>>,
+    mut clouds: Query<
+        (
+            &mut Transform,
+            &mut Visibility,
+            &mut TextureAtlasSprite,
+            &Handle<TextureAtlas>,
+            &Speed,
+            &AnimDirection,
+        ),
+        With<Clouds>,
+    >,
 ) {
     if timer.0.tick(time.delta()).just_finished() {
         let mut random = thread_rng();
@@ -210,7 +220,9 @@ fn random_floating_clouds(
                 tr.translation.x = random.gen_range(DEFAULT_WIDTH / 2.0..DEFAULT_WIDTH);
                 tr.translation.y = random.gen_range(-DEFAULT_HEIGHT / 2.0..DEFAULT_HEIGHT / 2.0);
                 // randomly pick sprites for clouds
-                let t_altas = texture_atlases.get(h).expect("unable to get clouds sprite from spritesheet");
+                let t_altas = texture_atlases
+                    .get(h)
+                    .expect("unable to get clouds sprite from spritesheet");
                 tas.index = random.gen_range(0..t_altas.textures.len());
                 vs.is_visible = true;
             }

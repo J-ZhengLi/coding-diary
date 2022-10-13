@@ -1,9 +1,11 @@
 use std::str::FromStr;
 
 use anyhow::Error as AnyError;
+use bevy::reflect::TypeUuid;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, TypeUuid)]
+#[uuid = "88ddefd3-fd66-4e87-a685-a7d00f776c6b"]
 pub struct PlatformCfg {
     pub platforms: Vec<Platform>,
 }

@@ -2,10 +2,14 @@ pub mod layers;
 mod license;
 mod platform_config;
 mod plugins;
+mod states;
 
 pub use platform_config::PlatformCfg;
+pub use states::GameState;
 
-use bevy::{prelude::*, render::texture::ImageSettings, window::close_on_esc};
+use bevy::render::texture::ImageSettings;
+use bevy::window::close_on_esc;
+use bevy::prelude::*;
 use plugins::*;
 
 pub const DEFAULT_WIDTH: f32 = 360.0;
@@ -24,6 +28,7 @@ fn main() {
         .insert_resource(df_win_des)
         .insert_resource(ImageSettings::default_nearest())
         .add_system(close_on_esc)
+        .add_state(GameState::Started)
         .add_plugins(DefaultPlugins)
         .add_plugin(BackgroundPlugin)
         .add_plugin(PlatformPlugin)

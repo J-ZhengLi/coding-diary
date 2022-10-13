@@ -1,4 +1,5 @@
 mod background;
+mod json_loader;
 mod platform;
 mod player;
 
