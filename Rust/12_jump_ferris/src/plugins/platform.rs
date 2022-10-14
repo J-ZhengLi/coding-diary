@@ -14,8 +14,7 @@ pub struct PlatformPlugin;
 
 impl Plugin for PlatformPlugin {
     fn build(&self, app: &mut App) {
-        app   
-            .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(20.0))
+        app.add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(20.0))
             .add_plugin(RapierDebugRenderPlugin::default())
             .add_plugin(JsonPlugin::<PlatformCfg>::default())
             .add_startup_system(init_base_floor)
@@ -63,6 +62,20 @@ fn init_base_floor(
             });
         }
     }
+
+    // add one collider box for ground
+    cmd.spawn_bundle(TransformBundle {
+        local: Transform::from_xyz(
+            0.,
+            -DEFAULT_HEIGHT / 2.0 + TILE_SIZE_Y * BG_SCALE.y * (ROWS - 1) as f32,
+            Layer::Platforms.into(),
+        ),
+        ..Default::default()
+    })
+    .insert(Collider::cuboid(
+        DEFAULT_WIDTH / 2.,
+        TILE_SIZE_Y * BG_SCALE.y,
+    ));
 }
 
 fn init_platforms(
@@ -96,8 +109,16 @@ fn load_platforms(
                     ..Default::default()
                 },
                 // TODO: spawn multiple block instead of stretching one
-                transform: Transform::from_xyz(plfm.pos_x * BG_SCALE.x, plfm.pos_y * BG_SCALE.y, Layer::Platforms.into())
-                    .with_scale(Vec3 { x: BG_SCALE.x * plfm.length, y: BG_SCALE.y, z: BG_SCALE.z }),
+                transform: Transform::from_xyz(
+                    plfm.pos_x * BG_SCALE.x,
+                    plfm.pos_y * BG_SCALE.y,
+                    Layer::Platforms.into(),
+                )
+                .with_scale(Vec3 {
+                    x: BG_SCALE.x * plfm.length,
+                    y: BG_SCALE.y,
+                    z: BG_SCALE.z,
+                }),
                 texture_atlas: tileset.clone(),
                 ..Default::default()
             })
@@ -105,9 +126,10 @@ fn load_platforms(
         }
 
         state
-            .set(GameState::Running)
+            .set(GameState::InitPlayer)
             .expect("failed to set game state");
     } else {
+        // This might(?) get executed multiple times
         info!("loading platforms...");
     }
 }

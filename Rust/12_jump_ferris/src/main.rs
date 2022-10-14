@@ -7,9 +7,9 @@ mod states;
 pub use platform_config::PlatformCfg;
 pub use states::GameState;
 
+use bevy::prelude::*;
 use bevy::render::texture::ImageSettings;
 use bevy::window::close_on_esc;
-use bevy::prelude::*;
 use plugins::*;
 
 pub const DEFAULT_WIDTH: f32 = 360.0;

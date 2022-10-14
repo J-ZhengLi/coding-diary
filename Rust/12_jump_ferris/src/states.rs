@@ -2,6 +2,8 @@
 pub enum GameState {
     Started,
     LoadingPlatforms,
+    InitPlayer,
+    LoadingPlayer,
     Running,
     Paused,
     Over,
