@@ -12,6 +12,9 @@ const MAX_NUM_OF_TILES_H: isize = (DEFAULT_WIDTH / (TILE_SIZE_X * BG_SCALE.x)) a
 
 pub struct PlatformPlugin;
 
+#[derive(Component)]
+struct EditablePlatform;
+
 impl Plugin for PlatformPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(20.0))
@@ -21,7 +24,8 @@ impl Plugin for PlatformPlugin {
             .add_system_set(SystemSet::on_update(GameState::Started).with_system(init_platforms))
             .add_system_set(
                 SystemSet::on_update(GameState::LoadingPlatforms).with_system(load_platforms),
-            );
+            )
+            .add_system_set(SystemSet::on_update(GameState::Running).with_system(handle_mouse_input));
     }
 }
 
@@ -122,14 +126,27 @@ fn load_platforms(
                 texture_atlas: tileset.clone(),
                 ..Default::default()
             })
-            .insert(Collider::cuboid(TILE_SIZE_X / 2., TILE_SIZE_Y / 2.));
+            .insert(Collider::cuboid(TILE_SIZE_X / 2., TILE_SIZE_Y / 2.))
+            .insert(EditablePlatform);
         }
 
         state
             .set(GameState::InitPlayer)
             .expect("failed to set game state");
     } else {
-        // This might(?) get executed multiple times
+        // This might(?) get printed multiple times
         info!("loading platforms...");
+    }
+}
+
+fn handle_mouse_input(
+    mut _cmd: Commands,
+    buttons: Res<Input<MouseButton>>,
+) {
+    if buttons.just_released(MouseButton::Left) {
+        info!("editing platform");
+    }
+    else if buttons.just_released(MouseButton::Right) {
+        info!("creating platform at position: {}", Vec2::new(0., 0.));
     }
 }

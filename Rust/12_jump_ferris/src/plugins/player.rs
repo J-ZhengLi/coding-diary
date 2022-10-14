@@ -7,8 +7,11 @@ use super::background::BG_SCALE;
 
 const FERRIS_SIZE_X: f32 = 34.0;
 const FERRIS_SIZE_Y: f32 = 21.0;
-const MIN_JUMP_FORCE: f32 = 80.;
-const MAX_JUMP_FORCE: f32 = 260.;
+
+// min/max initial speed when jumping
+const MIN_JUMP_SPEED: f32 = 50.;
+const MAX_JUMP_SPEED: f32 = 200.;
+
 const JUMP_CHARGE_SCALE: f32 = 180.;
 
 pub struct PlayerPlugin;
@@ -20,7 +23,7 @@ struct Player;
 struct MoveSpeed(f32);
 
 #[derive(Component)]
-struct JumpForce(f32);
+struct JumpSpeed(f32);
 
 #[derive(Component, Clone, Copy)]
 struct Grounded(bool);
@@ -86,12 +89,9 @@ fn init_player(
     .insert(Collider::cuboid(FERRIS_SIZE_X / 2., FERRIS_SIZE_Y / 2.))
     .insert(ActiveEvents::COLLISION_EVENTS)
     .insert(RigidBody::Dynamic)
-    // an external impulse with no magnitude
-    .insert(ExternalImpulse {
-        impulse: Vec2::new(0., 0.),
-        torque_impulse: 0.0,
-    })
-    .insert(JumpForce(MAX_JUMP_FORCE))
+    .insert(GravityScale(2.0))
+    .insert(Velocity::zero())
+    .insert(JumpSpeed(MIN_JUMP_SPEED))
     .insert(Grounded(false))
     .insert(AnimationTimer(Timer::from_seconds(0.1, true)));
 
@@ -126,14 +126,14 @@ fn player_movement(
         (
             &mut Transform,
             &MoveSpeed,
-            &mut ExternalImpulse,
-            &mut JumpForce,
+            &mut Velocity,
+            &mut JumpSpeed,
             &Grounded,
         ),
         With<Player>,
     >,
 ) {
-    let (mut tr, speed, mut impulse, mut j_force, grounded) = player
+    let (mut tr, speed, mut velocity, mut j_speed, grounded) = player
         .get_single_mut()
         .expect("no player was added to the scene");
     // freeze rotation
@@ -146,13 +146,14 @@ fn player_movement(
         tr.translation.x += speed.0;
     }
     if grounded.0 && keys.pressed(KeyCode::Space) {
-        if j_force.0 < MAX_JUMP_FORCE {
-            j_force.0 += JUMP_CHARGE_SCALE * time.delta_seconds();
+        if j_speed.0 < MAX_JUMP_SPEED {
+            j_speed.0 += JUMP_CHARGE_SCALE * time.delta_seconds();
         }
     }
     if grounded.0 && keys.just_released(KeyCode::Space) {
-        impulse.impulse = Vec2::new(0., j_force.0);
-        j_force.0 = MIN_JUMP_FORCE;
+        info!("jumping with initial speed: {}", j_speed.0);
+        velocity.linvel = Vec2::new(0., j_speed.0);
+        j_speed.0 = MIN_JUMP_SPEED;
     }
 }
 
