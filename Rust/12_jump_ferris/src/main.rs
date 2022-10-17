@@ -23,6 +23,11 @@ pub(crate) struct CursorSprites {
     pub pointing: Handle<Image>,
 }
 
+#[derive(Default)]
+pub(crate) struct GameFont {
+    pub main: Handle<Font>,
+}
+
 #[derive(Component)]
 pub(crate) struct Cursors(CursorType);
 
@@ -51,6 +56,7 @@ fn main() {
         .add_plugin(PlatformPlugin)
         .add_plugin(PlayerPlugin)
         .init_resource::<CursorSprites>()
+        .init_resource::<GameFont>()
         .add_startup_system(setup)
         .add_system(close_on_esc)
         .add_system(custom_cursors)
@@ -61,9 +67,14 @@ fn setup(
     mut cmd: Commands,
     assets: Res<AssetServer>,
     mut cursor_sprites: ResMut<CursorSprites>,
+    mut game_font: ResMut<GameFont>,
 ) {
     // camera
     cmd.spawn_bundle(Camera2dBundle::default());
+
+    // Font(s)
+    let main_font: Handle<Font> = assets.load("fonts/GnuUnifontFull.ttf");
+    game_font.main = main_font;
 
     // cursors
     let cursor_n_handle: Handle<Image> = assets.load("J-ZhengLi/cursor_normal.png");

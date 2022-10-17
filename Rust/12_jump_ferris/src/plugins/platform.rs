@@ -1,7 +1,8 @@
 use super::json_loader::JsonPlugin;
 use crate::layers::Layer;
 use crate::plugins::background::BG_SCALE;
-use crate::{GameState, PlatformCfg, DEFAULT_HEIGHT, DEFAULT_WIDTH};
+use crate::{Cursors, GameFont, GameState, PlatformCfg, DEFAULT_HEIGHT, DEFAULT_WIDTH};
+use bevy::text::Text2dSize;
 use bevy::{prelude::*, sprite::Anchor};
 use bevy_rapier2d::prelude::*;
 
@@ -20,12 +21,18 @@ struct AllSprites {
 #[derive(Component)]
 struct EditablePlatform;
 
+#[derive(Default)]
+struct RunningStatus {
+    on_editing: bool,
+}
+
 impl Plugin for PlatformPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(20.0))
             .add_plugin(RapierDebugRenderPlugin::default())
             .add_plugin(JsonPlugin::<PlatformCfg>::default())
             .init_resource::<AllSprites>()
+            .init_resource::<RunningStatus>()
             .add_startup_system(init_base_floor)
             .add_system_set(SystemSet::on_update(GameState::Started).with_system(init_platforms))
             .add_system_set(
@@ -33,7 +40,8 @@ impl Plugin for PlatformPlugin {
             )
             .add_system_set(
                 SystemSet::on_update(GameState::Running).with_system(handle_mouse_input),
-            );
+            )
+            .add_system(handle_keyboard_input);
     }
 }
 
@@ -42,8 +50,12 @@ fn init_base_floor(
     assets: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     mut sprites: ResMut<AllSprites>,
+    mut status: ResMut<RunningStatus>,
 ) {
     info!("initializing base floor...");
+
+    // initialize some settings
+    status.on_editing = false;
 
     let sprite_handle: Handle<Image> = assets.load("FreeCuteTileset/Tileset.png");
     let t_atlas = TextureAtlas::from_grid(sprite_handle, Vec2::new(TILE_SIZE_X, TILE_SIZE_Y), 8, 6);
@@ -112,31 +124,19 @@ fn load_platforms(
     platform_cfg: Res<Handle<PlatformCfg>>,
     plfm_cfg_assets: Res<Assets<PlatformCfg>>,
     tileset: Res<AllSprites>,
+    game_font: Res<GameFont>,
 ) {
     if let Some(plfm_cfg) = plfm_cfg_assets.get(&platform_cfg) {
         // loaded
         for plfm in &plfm_cfg.platforms {
-            cmd.spawn_bundle(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    index: 1,
-                    ..Default::default()
-                },
-                // TODO: spawn multiple block instead of stretching one
-                transform: Transform::from_xyz(
-                    plfm.pos_x * BG_SCALE.x,
-                    plfm.pos_y * BG_SCALE.y,
-                    Layer::Platforms.into(),
-                )
-                .with_scale(Vec3 {
-                    x: BG_SCALE.x * plfm.length,
-                    y: BG_SCALE.y,
-                    z: BG_SCALE.z,
-                }),
-                texture_atlas: tileset.handle.clone(),
-                ..Default::default()
-            })
-            .insert(Collider::cuboid(TILE_SIZE_X / 2., TILE_SIZE_Y / 2.))
-            .insert(EditablePlatform);
+            spawn_platform(
+                &mut cmd,
+                tileset.handle.clone(),
+                game_font.main.clone(),
+                Vec2::new(plfm.pos_x, plfm.pos_y),
+                plfm.length,
+                &plfm.text,
+            );
         }
 
         state
@@ -148,10 +148,106 @@ fn load_platforms(
     }
 }
 
-fn handle_mouse_input(mut _cmd: Commands, buttons: Res<Input<MouseButton>>) {
+fn handle_keyboard_input(
+    mut status: ResMut<RunningStatus>,
+    keys: Res<Input<KeyCode>>,
+    mut state: ResMut<State<GameState>>,
+) {
+    if keys.pressed(KeyCode::Return) {
+        if status.on_editing {
+            state.set(GameState::Running).expect("unable to set game state to running");
+            status.on_editing = false;
+        } else {
+            state.set(GameState::Editing).expect("unable to set game state to editing");
+            status.on_editing = true;
+        }
+    }
+}
+
+fn handle_mouse_input(
+    mut cmd: Commands,
+    tileset: Res<AllSprites>,
+    game_font: Res<GameFont>,
+    buttons: Res<Input<MouseButton>>,
+    mut cursors: Query<(&Style, &mut UiImage, &mut Cursors)>,
+) {
     if buttons.just_released(MouseButton::Left) {
         info!("editing platform");
     } else if buttons.just_released(MouseButton::Right) {
-        info!("creating platform at position: {}", Vec2::new(0., 0.));
+        if let Ok((cursor, _, _)) = cursors.get_single_mut() {
+            let new_plfm_pos = ui_to_world_pos(cursor.position);
+
+            if let Some(pos) = new_plfm_pos {
+                info!("creating a new platform at position: {:?}", pos);
+                spawn_platform(
+                    &mut cmd,
+                    tileset.handle.clone(),
+                    game_font.main.clone(),
+                    pos,
+                    3.0,
+                    "Text",
+                );
+            }
+        }
     }
+}
+
+fn spawn_platform(
+    cmd: &mut Commands,
+    atlas: Handle<TextureAtlas>,
+    font: Handle<Font>,
+    pos: Vec2,
+    length: f32,
+    label: &str,
+) {
+    let scaled_length = BG_SCALE.x * length;
+
+    cmd.spawn_bundle(SpriteSheetBundle {
+        sprite: TextureAtlasSprite {
+            index: 1,
+            ..Default::default()
+        },
+        transform: Transform::from_xyz(pos.x, pos.y, Layer::Platforms.into())
+            // TODO: spawn multiple block instead of stretching one
+            .with_scale(Vec3 {
+                x: scaled_length,
+                y: BG_SCALE.y,
+                z: 1.,
+            }),
+        texture_atlas: atlas,
+        ..Default::default()
+    })
+    .with_children(|p| {
+        p.spawn_bundle(Text2dBundle {
+            text: Text::from_section(
+                label,
+                TextStyle {
+                    font,
+                    font_size: 9.0,
+                    color: Color::WHITE,
+                },
+            ).with_alignment(TextAlignment::CENTER),
+            transform: Transform::from_xyz(0., 0., Layer::Platforms.into()).with_scale(Vec3::new(1.0 / scaled_length, 1.0, 1.0)),
+            ..Default::default()
+        });
+    })
+    .insert(Collider::cuboid(TILE_SIZE_X / 2., TILE_SIZE_Y / 2.))
+    .insert(EditablePlatform);
+}
+
+fn f32_val_to_f32(val: Val) -> Option<f32> {
+    if let Val::Px(v) = val {
+        Some(v)
+    } else {
+        None
+    }
+}
+
+// ui position starts from bottom left, but the transform position starts from
+// screen center, which is mildly inconvenient!!!
+fn ui_to_world_pos(ui_pos: UiRect<Val>) -> Option<Vec2> {
+    let x_pos = f32_val_to_f32(ui_pos.left).map(|f| f - DEFAULT_WIDTH / 2.)?;
+    let y_pos = f32_val_to_f32(ui_pos.bottom).map(|f| f - DEFAULT_HEIGHT / 2.)?;
+
+    Some(Vec2::new(x_pos, y_pos))
 }

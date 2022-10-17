@@ -5,6 +5,7 @@ pub enum GameState {
     InitPlayer,
     LoadingPlayer,
     Running,
+    Editing,
     Paused,
     Over,
 }
