@@ -4,6 +4,7 @@ pub enum Layer {
     BackgroundDeco,
     Platforms,
     Characters,
+    UI = 998,
     Other = 999,
 }
 

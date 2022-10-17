@@ -12,6 +12,11 @@ const MAX_NUM_OF_TILES_H: isize = (DEFAULT_WIDTH / (TILE_SIZE_X * BG_SCALE.x)) a
 
 pub struct PlatformPlugin;
 
+#[derive(Default)]
+struct AllSprites {
+    handle: Handle<TextureAtlas>,
+}
+
 #[derive(Component)]
 struct EditablePlatform;
 
@@ -20,12 +25,15 @@ impl Plugin for PlatformPlugin {
         app.add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(20.0))
             .add_plugin(RapierDebugRenderPlugin::default())
             .add_plugin(JsonPlugin::<PlatformCfg>::default())
+            .init_resource::<AllSprites>()
             .add_startup_system(init_base_floor)
             .add_system_set(SystemSet::on_update(GameState::Started).with_system(init_platforms))
             .add_system_set(
                 SystemSet::on_update(GameState::LoadingPlatforms).with_system(load_platforms),
             )
-            .add_system_set(SystemSet::on_update(GameState::Running).with_system(handle_mouse_input));
+            .add_system_set(
+                SystemSet::on_update(GameState::Running).with_system(handle_mouse_input),
+            );
     }
 }
 
@@ -33,13 +41,14 @@ fn init_base_floor(
     mut cmd: Commands,
     assets: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+    mut sprites: ResMut<AllSprites>,
 ) {
     info!("initializing base floor...");
 
     let sprite_handle: Handle<Image> = assets.load("FreeCuteTileset/Tileset.png");
     let t_atlas = TextureAtlas::from_grid(sprite_handle, Vec2::new(TILE_SIZE_X, TILE_SIZE_Y), 8, 6);
     let atlas_handle = texture_atlases.add(t_atlas);
-    cmd.insert_resource(atlas_handle.clone());
+    sprites.handle = atlas_handle.clone();
 
     // need 4 rows of base floor tiles, where the top row are grass blocks
     // and the rest 2 rows are dirt blocks
@@ -102,7 +111,7 @@ fn load_platforms(
     mut state: ResMut<State<GameState>>,
     platform_cfg: Res<Handle<PlatformCfg>>,
     plfm_cfg_assets: Res<Assets<PlatformCfg>>,
-    tileset: Res<Handle<TextureAtlas>>,
+    tileset: Res<AllSprites>,
 ) {
     if let Some(plfm_cfg) = plfm_cfg_assets.get(&platform_cfg) {
         // loaded
@@ -123,7 +132,7 @@ fn load_platforms(
                     y: BG_SCALE.y,
                     z: BG_SCALE.z,
                 }),
-                texture_atlas: tileset.clone(),
+                texture_atlas: tileset.handle.clone(),
                 ..Default::default()
             })
             .insert(Collider::cuboid(TILE_SIZE_X / 2., TILE_SIZE_Y / 2.))
@@ -139,14 +148,10 @@ fn load_platforms(
     }
 }
 
-fn handle_mouse_input(
-    mut _cmd: Commands,
-    buttons: Res<Input<MouseButton>>,
-) {
+fn handle_mouse_input(mut _cmd: Commands, buttons: Res<Input<MouseButton>>) {
     if buttons.just_released(MouseButton::Left) {
         info!("editing platform");
-    }
-    else if buttons.just_released(MouseButton::Right) {
+    } else if buttons.just_released(MouseButton::Right) {
         info!("creating platform at position: {}", Vec2::new(0., 0.));
     }
 }

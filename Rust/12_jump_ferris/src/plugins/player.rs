@@ -63,7 +63,7 @@ fn init_player_animations(
 ) {
     info!("initializing ferris...");
 
-    let ferris_idle: Handle<Image> = assets.load("ferris-idle.png");
+    let ferris_idle: Handle<Image> = assets.load("J-ZhengLi/ferris-idle.png");
     let t_atlas =
         TextureAtlas::from_grid(ferris_idle, Vec2::new(FERRIS_SIZE_X, FERRIS_SIZE_Y), 6, 1);
     let atlas_handle = texture_atlases.add(t_atlas);
