@@ -1,18 +1,18 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::{layers::Layer, GameState};
+use crate::{layers::Layer, GameState, DEFAULT_HEIGHT};
 
-use super::background::BG_SCALE;
+use super::{background::BG_SCALE, platform::SpawnPoints};
 
 const FERRIS_SIZE_X: f32 = 34.0;
 const FERRIS_SIZE_Y: f32 = 21.0;
 
 // min/max initial speed when jumping
 const MIN_JUMP_SPEED: f32 = 50.;
-const MAX_JUMP_SPEED: f32 = 200.;
+const MAX_JUMP_SPEED: f32 = 230.;
 
-const JUMP_CHARGE_SCALE: f32 = 180.;
+const JUMP_CHARGE_SCALE: f32 = 200.;
 
 pub struct PlayerPlugin;
 
@@ -51,7 +51,8 @@ impl Plugin for PlayerPlugin {
                 .with_system(anim_player)
                 .with_system(player_movement)
                 .with_system(ground_detection),
-        );
+        )
+        .add_system_to_stage(CoreStage::PostUpdate, follow_player);
     }
 }
 
@@ -78,17 +79,24 @@ fn init_player(
     mut cmd: Commands,
     mut state: ResMut<State<GameState>>,
     idle_handle: Res<Handle<TextureAtlas>>,
+    spawn_points: Res<SpawnPoints>,
 ) {
     cmd.spawn_bundle(SpriteSheetBundle {
         texture_atlas: idle_handle.clone(),
-        transform: Transform::from_xyz(-80., -200., Layer::Characters.into()).with_scale(BG_SCALE),
+        transform: Transform::from_xyz(
+            spawn_points.ground.x,
+            spawn_points.ground.y + 20., // add 20 to avoid physical collision at the start.
+            Layer::Characters.into(),
+        )
+        .with_scale(BG_SCALE),
         ..Default::default()
     })
     .insert(Player)
     .insert(MoveSpeed(0.5))
-    .insert(Collider::cuboid(FERRIS_SIZE_X / 2., FERRIS_SIZE_Y / 2.))
+    .insert(Collider::cuboid(FERRIS_SIZE_X / 3., FERRIS_SIZE_Y / 2.2))
     .insert(ActiveEvents::COLLISION_EVENTS)
     .insert(RigidBody::Dynamic)
+    .insert(LockedAxes::ROTATION_LOCKED)
     .insert(GravityScale(2.0))
     .insert(Velocity::zero())
     .insert(JumpSpeed(MIN_JUMP_SPEED))
@@ -136,8 +144,6 @@ fn player_movement(
     let (mut tr, speed, mut velocity, mut j_speed, grounded) = player
         .get_single_mut()
         .expect("no player was added to the scene");
-    // freeze rotation
-    tr.rotation = Quat::IDENTITY;
 
     if keys.any_pressed([KeyCode::Left, KeyCode::A]) {
         tr.translation.x -= speed.0;
@@ -150,10 +156,23 @@ fn player_movement(
             j_speed.0 += JUMP_CHARGE_SCALE * time.delta_seconds();
         }
     }
-    if grounded.0 && keys.just_released(KeyCode::Space) {
+    if keys.just_released(KeyCode::Space) {
         info!("jumping with initial speed: {}", j_speed.0);
         velocity.linvel = Vec2::new(0., j_speed.0);
         j_speed.0 = MIN_JUMP_SPEED;
+    }
+}
+
+fn follow_player(
+    player: Query<&Transform, With<Player>>,
+    mut camera: Query<&mut Transform, (With<Camera2d>, Without<Player>)>,
+) {
+    if let (Ok(mut cam_tf), Ok(pl_tf)) = (camera.get_single_mut(), player.get_single()) {
+        // basically, we don't want the distance between camera and
+        // the player to exceed certain threshold
+        if (cam_tf.translation.y - pl_tf.translation.y).abs() > DEFAULT_HEIGHT / 8.0 * 3.0 {
+            cam_tf.translation.y = pl_tf.translation.y + DEFAULT_HEIGHT / 8.0;
+        }
     }
 }
 

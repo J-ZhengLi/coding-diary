@@ -116,7 +116,7 @@ fn init_background_image(
                 ..Default::default()
             },
             transform: Transform::from_xyz(
-                rng.gen_range(-DEFAULT_WIDTH / 2.0..DEFAULT_WIDTH),
+                rng.gen_range(-DEFAULT_WIDTH / 2.0..DEFAULT_WIDTH / 2.0),
                 rng.gen_range(-DEFAULT_WIDTH / 2.0..DEFAULT_WIDTH / 2.0),
                 Layer::BackgroundDeco.into(),
             )
@@ -124,7 +124,7 @@ fn init_background_image(
             ..Default::default()
         })
         .insert(Clouds)
-        .insert(Speed(rng.gen_range(0.2..0.5)))
+        .insert(Speed(rng.gen_range(0.2..0.6)))
         .insert(AnimDirection(Direction::Left));
     }
 }
@@ -209,16 +209,20 @@ fn random_floating_clouds(
         ),
         With<Clouds>,
     >,
+    camera: Query<&Transform, (With<Camera2d>, Without<Clouds>)>,
 ) {
     if timer.0.tick(time.delta()).just_finished() {
         let mut random = thread_rng();
+        let cam_tf = camera.get_single().expect("unable to get a single camera");
+
         for (mut tr, mut vs, mut tas, h, s, _d) in &mut clouds {
             if vs.is_visible {
                 tr.translation.x -= s.0;
             } else {
                 // activates some clouds at random offsets
                 tr.translation.x = random.gen_range(DEFAULT_WIDTH / 2.0..DEFAULT_WIDTH);
-                tr.translation.y = random.gen_range(-DEFAULT_HEIGHT / 2.0..DEFAULT_HEIGHT / 2.0);
+                tr.translation.y = random.gen_range(-DEFAULT_HEIGHT / 2.0..DEFAULT_HEIGHT / 2.0)
+                    + cam_tf.translation.y;
                 // randomly pick sprites for clouds
                 let t_altas = texture_atlases
                     .get(h)

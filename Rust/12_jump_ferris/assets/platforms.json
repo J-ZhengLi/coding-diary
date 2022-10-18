@@ -2,26 +2,10 @@
     "platforms": [
         {
             "id": 0,
-            "length": 4.0,
-            "pos_x": 0.0,
-            "pos_y": -180.0,
-            "angle": 0.0,
-            "text": "lizheng"
-        },
-        {
-            "id": 1,
-            "length": 2.0,
-            "pos_x": -50.0,
-            "pos_y": -100.0,
-            "angle": 0.0,
-            "text": "lizheng"
-        },
-        {
-            "id": 2,
             "length": 5.0,
-            "pos_x": 84.0,
-            "pos_y": -25.0,
-            "angle": 0.0,
+            "pos_x": -200.0,
+            "pos_y": 80.0,
+            "angle": 15.0,
             "text": "lizheng"
         }
     ]

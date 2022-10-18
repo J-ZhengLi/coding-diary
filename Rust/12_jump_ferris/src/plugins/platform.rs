@@ -2,7 +2,6 @@ use super::json_loader::JsonPlugin;
 use crate::layers::Layer;
 use crate::plugins::background::BG_SCALE;
 use crate::{Cursors, GameFont, GameState, PlatformCfg, DEFAULT_HEIGHT, DEFAULT_WIDTH};
-use bevy::text::Text2dSize;
 use bevy::{prelude::*, sprite::Anchor};
 use bevy_rapier2d::prelude::*;
 
@@ -22,6 +21,12 @@ struct AllSprites {
 struct EditablePlatform;
 
 #[derive(Default)]
+pub struct SpawnPoints {
+    pub ground: Vec2,
+    pub top: Vec2,
+}
+
+#[derive(Default)]
 struct RunningStatus {
     on_editing: bool,
 }
@@ -33,6 +38,7 @@ impl Plugin for PlatformPlugin {
             .add_plugin(JsonPlugin::<PlatformCfg>::default())
             .init_resource::<AllSprites>()
             .init_resource::<RunningStatus>()
+            .init_resource::<SpawnPoints>()
             .add_startup_system(init_base_floor)
             .add_system_set(SystemSet::on_update(GameState::Started).with_system(init_platforms))
             .add_system_set(
@@ -51,6 +57,7 @@ fn init_base_floor(
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     mut sprites: ResMut<AllSprites>,
     mut status: ResMut<RunningStatus>,
+    mut spawn_points: ResMut<SpawnPoints>,
 ) {
     info!("initializing base floor...");
 
@@ -87,6 +94,11 @@ fn init_base_floor(
             });
         }
     }
+
+    spawn_points.ground = Vec2::new(
+        0.,
+        -DEFAULT_HEIGHT / 2.0 + ROWS as f32 * TILE_SIZE_Y * BG_SCALE.y,
+    );
 
     // add one collider box for ground
     cmd.spawn_bundle(TransformBundle {
@@ -125,6 +137,7 @@ fn load_platforms(
     plfm_cfg_assets: Res<Assets<PlatformCfg>>,
     tileset: Res<AllSprites>,
     game_font: Res<GameFont>,
+    spawn_points: Res<SpawnPoints>,
 ) {
     if let Some(plfm_cfg) = plfm_cfg_assets.get(&platform_cfg) {
         // loaded
@@ -133,7 +146,7 @@ fn load_platforms(
                 &mut cmd,
                 tileset.handle.clone(),
                 game_font.main.clone(),
-                Vec2::new(plfm.pos_x, plfm.pos_y),
+                Vec2::new(plfm.pos_x, spawn_points.ground.y + plfm.pos_y),
                 plfm.length,
                 &plfm.text,
             );
@@ -155,10 +168,14 @@ fn handle_keyboard_input(
 ) {
     if keys.pressed(KeyCode::Return) {
         if status.on_editing {
-            state.set(GameState::Running).expect("unable to set game state to running");
+            state
+                .set(GameState::Running)
+                .expect("unable to set game state to running");
             status.on_editing = false;
         } else {
-            state.set(GameState::Editing).expect("unable to set game state to editing");
+            state
+                .set(GameState::Editing)
+                .expect("unable to set game state to editing");
             status.on_editing = true;
         }
     }
@@ -170,14 +187,26 @@ fn handle_mouse_input(
     game_font: Res<GameFont>,
     buttons: Res<Input<MouseButton>>,
     mut cursors: Query<(&Style, &mut UiImage, &mut Cursors)>,
+    camera: Query<&Transform, With<Camera2d>>,
+    platforms: Query<&Transform, (With<EditablePlatform>, Without<Camera2d>)>
 ) {
     if buttons.just_released(MouseButton::Left) {
+        let cam_tf = camera.get_single().expect("failed to get a single camera");
+        if let Some(c_pos) = cursors.get_single_mut().ok().and_then(|(style, _, _)| {
+            ui_to_world_pos(style.position, cam_tf.translation.truncate())
+        }) {
+            // check if cursor "touches" any existing platforms
+            println!("mouse pos: {:?}", c_pos);
+            for plfm in &platforms {
+
+            }
+        }
+
         info!("editing platform");
     } else if buttons.just_released(MouseButton::Right) {
+        let cam_tf = camera.get_single().expect("failed to get a single camera");
         if let Ok((cursor, _, _)) = cursors.get_single_mut() {
-            let new_plfm_pos = ui_to_world_pos(cursor.position);
-
-            if let Some(pos) = new_plfm_pos {
+            if let Some(pos) = ui_to_world_pos(cursor.position, cam_tf.translation.truncate()) {
                 info!("creating a new platform at position: {:?}", pos);
                 spawn_platform(
                     &mut cmd,
@@ -200,8 +229,6 @@ fn spawn_platform(
     length: f32,
     label: &str,
 ) {
-    let scaled_length = BG_SCALE.x * length;
-
     cmd.spawn_bundle(SpriteSheetBundle {
         sprite: TextureAtlasSprite {
             index: 1,
@@ -210,7 +237,7 @@ fn spawn_platform(
         transform: Transform::from_xyz(pos.x, pos.y, Layer::Platforms.into())
             // TODO: spawn multiple block instead of stretching one
             .with_scale(Vec3 {
-                x: scaled_length,
+                x: BG_SCALE.x * length,
                 y: BG_SCALE.y,
                 z: 1.,
             }),
@@ -226,8 +253,13 @@ fn spawn_platform(
                     font_size: 9.0,
                     color: Color::WHITE,
                 },
-            ).with_alignment(TextAlignment::CENTER),
-            transform: Transform::from_xyz(0., 0., Layer::Platforms.into()).with_scale(Vec3::new(1.0 / scaled_length, 1.0, 1.0)),
+            )
+            .with_alignment(TextAlignment::CENTER),
+            transform: Transform::from_xyz(0., 0., Layer::Platforms.into()).with_scale(Vec3::new(
+                1.0 / length,
+                1.0,
+                1.0,
+            )),
             ..Default::default()
         });
     })
@@ -245,9 +277,13 @@ fn f32_val_to_f32(val: Val) -> Option<f32> {
 
 // ui position starts from bottom left, but the transform position starts from
 // screen center, which is mildly inconvenient!!!
-fn ui_to_world_pos(ui_pos: UiRect<Val>) -> Option<Vec2> {
-    let x_pos = f32_val_to_f32(ui_pos.left).map(|f| f - DEFAULT_WIDTH / 2.)?;
-    let y_pos = f32_val_to_f32(ui_pos.bottom).map(|f| f - DEFAULT_HEIGHT / 2.)?;
+fn ui_to_world_pos(ui_pos: UiRect<Val>, camera_pos: Vec2) -> Option<Vec2> {
+    let x_pos = f32_val_to_f32(ui_pos.left).map(|f| f - DEFAULT_WIDTH / 2. + camera_pos.x)?;
+    let y_pos = f32_val_to_f32(ui_pos.bottom).map(|f| f - DEFAULT_HEIGHT / 2. + camera_pos.y)?;
 
     Some(Vec2::new(x_pos, y_pos))
+}
+
+fn check_overlaps(a: &Transform, b: &Transform) {
+    
 }
