@@ -12,8 +12,8 @@ use bevy::render::texture::ImageSettings;
 use bevy::window::close_on_esc;
 use plugins::*;
 
-pub const DEFAULT_WIDTH: f32 = 607.5;
-pub const DEFAULT_HEIGHT: f32 = 1080.0;
+pub const DEFAULT_WIDTH: f32 = 450.0;
+pub const DEFAULT_HEIGHT: f32 = 800.0;
 
 const CURSOR_SIZE: Vec2 = Vec2::new(16.0, 16.0);
 
@@ -97,13 +97,13 @@ fn setup(
 }
 
 fn custom_cursors(
-    mut cursor_event_reader: EventReader<CursorMoved>,
+    windows: Res<Windows>,
     mut cursors: Query<&mut Style, With<Cursors>>,
 ) {
     if let Ok(mut c_style) = cursors.get_single_mut() {
-        for c_event in cursor_event_reader.iter() {
-            c_style.position.bottom = Val::Px(c_event.position.y - CURSOR_SIZE.y);
-            c_style.position.left = Val::Px(c_event.position.x);
+        if let Some(c_pos) = windows.get_primary().and_then(|w| w.cursor_position()) {
+            c_style.position.bottom = Val::Px(c_pos.y - CURSOR_SIZE.y);
+            c_style.position.left = Val::Px(c_pos.x);
         }
     }
 }

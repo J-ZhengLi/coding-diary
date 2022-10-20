@@ -1,7 +1,9 @@
 use super::json_loader::JsonPlugin;
+use super::platform_editor_ui::PlatformEditorUi;
 use crate::layers::Layer;
 use crate::plugins::background::BG_SCALE;
-use crate::{Cursors, GameFont, GameState, PlatformCfg, DEFAULT_HEIGHT, DEFAULT_WIDTH};
+use crate::{Cursors, GameFont, GameState, PlatformCfg, DEFAULT_HEIGHT, DEFAULT_WIDTH, CURSOR_SIZE};
+use bevy::sprite::collide_aabb::collide;
 use bevy::{prelude::*, sprite::Anchor};
 use bevy_rapier2d::prelude::*;
 
@@ -27,8 +29,8 @@ pub struct SpawnPoints {
 }
 
 #[derive(Default)]
-struct RunningStatus {
-    on_editing: bool,
+pub(crate) struct RunningStatus {
+    pub on_editing: bool,
 }
 
 impl Plugin for PlatformPlugin {
@@ -36,6 +38,7 @@ impl Plugin for PlatformPlugin {
         app.add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(20.0))
             .add_plugin(RapierDebugRenderPlugin::default())
             .add_plugin(JsonPlugin::<PlatformCfg>::default())
+            .add_plugin(PlatformEditorUi)
             .init_resource::<AllSprites>()
             .init_resource::<RunningStatus>()
             .init_resource::<SpawnPoints>()
@@ -46,8 +49,7 @@ impl Plugin for PlatformPlugin {
             )
             .add_system_set(
                 SystemSet::on_update(GameState::Running).with_system(handle_mouse_input),
-            )
-            .add_system(handle_keyboard_input);
+            );
     }
 }
 
@@ -146,6 +148,8 @@ fn load_platforms(
                 &mut cmd,
                 tileset.handle.clone(),
                 game_font.main.clone(),
+                // FIXME: absolute position cause troubles after windows size change,
+                // maybe it'd be better to use percentage?
                 Vec2::new(plfm.pos_x, spawn_points.ground.y + plfm.pos_y),
                 plfm.length,
                 &plfm.text,
@@ -161,26 +165,6 @@ fn load_platforms(
     }
 }
 
-fn handle_keyboard_input(
-    mut status: ResMut<RunningStatus>,
-    keys: Res<Input<KeyCode>>,
-    mut state: ResMut<State<GameState>>,
-) {
-    if keys.pressed(KeyCode::Return) {
-        if status.on_editing {
-            state
-                .set(GameState::Running)
-                .expect("unable to set game state to running");
-            status.on_editing = false;
-        } else {
-            state
-                .set(GameState::Editing)
-                .expect("unable to set game state to editing");
-            status.on_editing = true;
-        }
-    }
-}
-
 fn handle_mouse_input(
     mut cmd: Commands,
     tileset: Res<AllSprites>,
@@ -188,35 +172,44 @@ fn handle_mouse_input(
     buttons: Res<Input<MouseButton>>,
     mut cursors: Query<(&Style, &mut UiImage, &mut Cursors)>,
     camera: Query<&Transform, With<Camera2d>>,
-    platforms: Query<&Transform, (With<EditablePlatform>, Without<Camera2d>)>
+    platforms: Query<&Transform, (With<EditablePlatform>, Without<Camera2d>)>,
+    mut state: ResMut<State<GameState>>
 ) {
     if buttons.just_released(MouseButton::Left) {
         let cam_tf = camera.get_single().expect("failed to get a single camera");
-        if let Some(c_pos) = cursors.get_single_mut().ok().and_then(|(style, _, _)| {
-            ui_to_world_pos(style.position, cam_tf.translation.truncate())
-        }) {
-            // check if cursor "touches" any existing platforms
-            println!("mouse pos: {:?}", c_pos);
-            for plfm in &platforms {
-
+        if let Ok((style, _, _)) = cursors.get_single_mut() {
+            if let Some(cursor_world_pos) = ui_to_world_pos(style.position, cam_tf.translation) {
+                // check if cursor "touches" any existing platforms
+                println!("mouse pos: {:?}", cursor_world_pos);
+                // FIXME: unoptimized, this checks all platforms
+                // including those outside of current frame
+                for plfm_tr in &platforms {
+                    if collide_with_cursor(
+                        plfm_tr.translation,
+                        Vec2::new(TILE_SIZE_X * plfm_tr.scale.x, TILE_SIZE_Y * plfm_tr.scale.y),
+                        cursor_world_pos,
+                        CURSOR_SIZE,
+                    ) {
+                        info!("editing platfrom at {:?}", plfm_tr.translation);
+                        state.set(GameState::Editing).expect("unable to edit platform");
+                    }
+                }
             }
         }
-
-        info!("editing platform");
     } else if buttons.just_released(MouseButton::Right) {
         let cam_tf = camera.get_single().expect("failed to get a single camera");
-        if let Ok((cursor, _, _)) = cursors.get_single_mut() {
-            if let Some(pos) = ui_to_world_pos(cursor.position, cam_tf.translation.truncate()) {
-                info!("creating a new platform at position: {:?}", pos);
-                spawn_platform(
-                    &mut cmd,
-                    tileset.handle.clone(),
-                    game_font.main.clone(),
-                    pos,
-                    3.0,
-                    "Text",
-                );
-            }
+        if let Some(c_pos) = cursors.get_single_mut().ok().and_then(|(style, _, _)| {
+            ui_to_world_pos(style.position, cam_tf.translation)
+        }) {
+            info!("creating a new platform at position: {:?}", c_pos);
+            spawn_platform(
+                &mut cmd,
+                tileset.handle.clone(),
+                game_font.main.clone(),
+                c_pos,
+                3.0,
+                "Text",
+            );
         }
     }
 }
@@ -277,13 +270,15 @@ fn f32_val_to_f32(val: Val) -> Option<f32> {
 
 // ui position starts from bottom left, but the transform position starts from
 // screen center, which is mildly inconvenient!!!
-fn ui_to_world_pos(ui_pos: UiRect<Val>, camera_pos: Vec2) -> Option<Vec2> {
+fn ui_to_world_pos(ui_pos: UiRect<Val>, camera_pos: Vec3) -> Option<Vec2> {
     let x_pos = f32_val_to_f32(ui_pos.left).map(|f| f - DEFAULT_WIDTH / 2. + camera_pos.x)?;
     let y_pos = f32_val_to_f32(ui_pos.bottom).map(|f| f - DEFAULT_HEIGHT / 2. + camera_pos.y)?;
 
     Some(Vec2::new(x_pos, y_pos))
 }
 
-fn check_overlaps(a: &Transform, b: &Transform) {
-    
+// FIXME: should probably convert the object position into ui position,
+// and compare it with the position of the actural cursor rather than the cursor sprite.
+fn collide_with_cursor(pos: Vec3, size: Vec2, cursor_world_pos: Vec2, cursor_size: Vec2) -> bool {
+    collide(pos, size, cursor_world_pos.extend(pos.z), cursor_size).is_some()
 }

@@ -1,6 +1,7 @@
 mod background;
 mod json_loader;
 mod platform;
+mod platform_editor_ui;
 mod player;
 
 pub use background::BackgroundPlugin;
