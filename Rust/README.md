@@ -1,13 +1,34 @@
 # Rust
 
-### First Stage: ###
-  Getting inspration from most downloaded crates in [crates.io](https://crates.io/crates?sort=downloads)
+## Introduction:
+  Some fun projects built with Rust programming language.
 
-### Introduction: ###
-  This part of repository record the proccess of me learning Rust-lang from the ground up,
-since I'm (or was) new to Rust-lang, it is highly possible for me to messed up the coding 
-especially its formats, SO... Please forgive me and kindly point out my mistakes~
+  Just noted that these projects were made for fun thus might not offering any real world usages,
+  but they might be helpful for beginners like I was (and still am), who want to try Rust-lang but the real world production examples might
+  be too hard to understand.
 
-### Requirements: ###
-* rust
-* cargo
+  Each project should be very small containing at most a few hundred lines of code, with commonly used crates dependencies, so it should be fairly easy to understand...
+
+## Requirement(s):
+
+* rustup
+
+## Getting started:
+
+Add a project:
+
+```bash
+cargo dev-new <NAME>
+```
+
+Remove a project:
+
+```bash
+cargo dev-del <PATH>
+```
+
+Check `cargo dev-help` for more information. or run:
+
+```bash
+cargo run -p helper help
+```

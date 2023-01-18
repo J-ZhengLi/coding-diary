@@ -1,3 +1,4 @@
 [alias]
-dev-new = "run --manifest-path ./helper/Cargo.toml -- new"
-dev-del = "run --manifest-path ./helper/Cargo.toml -- delete"
+dev-new = "run -p helper -- new"
+dev-del = "run -p helper -- delete"
+dev-help = "run -p helper -- help"
