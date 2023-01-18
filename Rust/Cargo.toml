@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "helper",
     "1_gotcha_game",
     "2_item_manager",
     "3_item_parser",

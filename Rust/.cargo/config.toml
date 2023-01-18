@@ -1,0 +1,3 @@
+[alias]
+dev-new = "run --manifest-path ./helper/Cargo.toml -- new"
+dev-del = "run --manifest-path ./helper/Cargo.toml -- delete"
