@@ -1,4 +1,2 @@
 [alias]
-dev-new = "run -p helper -- new"
-dev-del = "run -p helper -- delete"
-dev-help = "run -p helper -- help"
+dev = "run -p helper --"

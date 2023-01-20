@@ -18,16 +18,16 @@
 Add a project:
 
 ```bash
-cargo dev-new <NAME>
+cargo dev new <NAME>
 ```
 
 Remove a project:
 
 ```bash
-cargo dev-del <PATH>
+cargo dev del <PATH>
 ```
 
-Check `cargo dev-help` for more information. or run:
+Check `cargo dev help` for more information. or run:
 
 ```bash
 cargo run -p helper help
