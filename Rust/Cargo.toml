@@ -13,7 +13,7 @@ members = [
     "9_firework_terminal",
     "10_basic_schedular",
     "11_gomoku",
-    "12_jump_ferris",
+    "12_jump_ferris", "13_webapp_demo",
 ]
 
 [profile.dev.package."*"]
